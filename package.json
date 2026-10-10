@@ -6,7 +6,7 @@
     "apps/web"
   ],
   "scripts": {
-    "dev": "concurrently -k -n api,web -c blue,green \"npm run dev -w @regcheck/api\" \"npm run dev -w @regcheck/web\"",
+    "dev": "node --env-file-if-exists=.env ./node_modules/concurrently/dist/bin/concurrently.js -k -n api,worker,web -c blue,yellow,green \"npm run dev -w @regcheck/api\" \"npm run dev:worker -w @regcheck/api\" \"npm run dev -w @regcheck/web\"",
     "build": "npm run build -w @regcheck/api && npm run build -w @regcheck/web",
     "typecheck": "npm run typecheck -w @regcheck/api && npm run typecheck -w @regcheck/web"
   },

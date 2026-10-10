@@ -1,20 +1,20 @@
 # RegCheck UZ
-## AI-Powered Banking Regulatory Compliance Platform
+## AI-Powered FinTech Regulatory Compliance Platform
 ### MVP Technical Specification | FinTech Hackathon 2026
 
 **Version:** 1.0  
 **Development window:** 23 hours  
 **Hackathon track:** FinTech / AI in Finance  
 **Participation mode:** Startup  
-**Primary market:** Commercial banks in Uzbekistan  
+**Primary market:** Regulated financial institutions and fintech businesses in Uzbekistan  
 **Primary users:** Compliance officers, legal departments, internal auditors and risk-management teams  
-**Data policy:** Synthetic banking documents and properly sourced public regulatory materials only
+**Data policy:** Synthetic organization documents and properly sourced public regulatory materials only
 
 ---
 
 # 1. Executive Summary
 
-RegCheck UZ is an AI-powered regulatory compliance platform that helps Uzbekistan's banks identify discrepancies between their internal policies and applicable banking regulations.
+RegCheck UZ is an AI-powered regulatory compliance platform that helps Uzbekistan's banks and fintech businesses identify discrepancies between their internal policies and applicable financial-sector regulations.
 
 The system combines regulatory document processing, retrieval, obligation extraction, policy matching, AI-assisted analysis, and human approval workflows.
 
@@ -22,23 +22,23 @@ It supports two primary use cases.
 
 **Use Case A: Initial Compliance Assessment**
 
-A bank uploads its internal policies and provides information about its business activities. The platform compares these policies with its indexed regulatory knowledge base, identifies potential discrepancies, and prepares an evidence-backed compliance assessment.
+A regulated organization uploads its internal policies and provides information about its products and business activities. The platform compares these policies with its indexed regulatory knowledge base, identifies potential discrepancies, and prepares an evidence-backed compliance assessment.
 
 **Use Case B: Regulatory Change Impact Analysis**
 
 When an existing regulation is amended or a new regulation is introduced, the platform identifies the affected requirements, determines which internal policies may need review, and generates proposed corrective actions.
 
-The platform does not declare a bank legally compliant or non-compliant. Its findings are recommendations for qualified compliance officers to verify.
+The platform does not declare an organization legally compliant or non-compliant. Its findings are recommendations for qualified compliance officers to verify.
 
 ## 1.1 Problem Statement
 
-Banks must continuously maintain internal procedures that reflect applicable regulations.
+Regulated financial organizations and fintech businesses must continuously maintain internal procedures that reflect the rules applicable to their products, activities, and legal-entity type.
 
 The process can involve:
 
 - Reading lengthy regulatory documents.
 - Understanding amendments and effective dates.
-- Determining which obligations apply to specific banking activities.
+- Determining which obligations apply to specific financial services, products, and business activities.
 - Locating related internal policies.
 - Comparing regulatory requirements with existing procedures.
 - Identifying missing or outdated provisions.
@@ -51,12 +51,12 @@ RegCheck UZ aims to reduce the time needed to prepare these assessments while ma
 
 ## 1.2 Value Proposition
 
-**Turn banking regulations and internal policy documents into evidence-backed, reviewable compliance assessments.**
+**Turn financial-sector regulations and internal policy documents into evidence-backed, reviewable compliance assessments.**
 
 The product's value comes from connecting three types of information:
 
 1. Regulatory obligations.
-2. The bank's documented policies and business activities.
+2. The organization's documented policies and business activities.
 3. Compliance assessment findings and reviewer decisions.
 
 A successful MVP must demonstrate this connection through working software.
@@ -66,7 +66,7 @@ A successful MVP must demonstrate this connection through working software.
 The MVP is successful when an independent user can:
 
 1. Access the publicly deployed web application.
-2. Create or open a fictional bank workspace.
+2. Create or open a fictional regulated-organization workspace.
 3. Upload a previously unseen internal policy.
 4. Run an assessment against real, indexed regulatory requirements.
 5. See meaningful findings supported by exact document excerpts.
@@ -82,35 +82,34 @@ The MVP is successful when an independent user can:
 
 ## 2.1 Regulatory Scope
 
-The initial regulatory corpus will focus on Uzbekistan's AML/KYC and customer due-diligence requirements applicable to commercial banks.
+The initial regulatory corpus covers multiple fintech and financial-services domains rather than defining the product around AML/KYC alone. The MVP should curate a manageable, manually verified set of source documents across relevant domains and disclose exactly which organizations and provisions are covered.
 
-The system architecture should support additional banking compliance domains, but they are not required for the MVP.
+Suggested domains:
 
-Suggested topics:
+- Payments and payment systems.
+- Banking and prudential requirements.
+- Payment services, payment organizations, and licensing.
+- Electronic money and digital financial services.
+- Customer/user protection and service-provider obligations.
+- Governance, operational risk, and outsourcing.
+- Information security, cybersecurity, and data protection.
+- AML/KYC and customer due diligence.
 
-- Customer identification.
-- Customer due diligence.
-- Beneficial-owner identification.
-- Customer risk classification.
-- Internal AML controls.
-- Relevant reporting and monitoring responsibilities.
+**Initial source examples:**
 
-**Primary reference regulation:**
+- Uzbekistan's Law No. ZRU-578, "On Payments and Payment Systems," including relevant amendments: https://lex.uz/docs/4575788
+- Uzbekistan's rules governing internal controls against money laundering and terrorism financing in commercial banks, registered under No. 2886: https://lex.uz/ru/acts/3212192
 
-Uzbekistan's rules governing internal controls against money laundering and terrorism financing in commercial banks, registered under No. 2886, including relevant amendments.
-
-Reference:
-https://lex.uz/ru/acts/3212192
-
-The team must verify each selected provision, its applicability, and ts effective date as of the assessment date.
+These are examples for a curated initial corpus, not a claim of complete coverage. Verify each source, covered entity types, selected provisions, version, and effective dates as of the assessment date.
 
 ## 2.2 Feature Priorities
 
 | Feature | Priority |
 |---|---|
-| Fictional bank workspace | P0 |
+| Fictional regulated-organization workspace | P0 |
 | Internal policy PDF upload | P0 |
 | Regulatory document corpus | P0 |
+| Allowlisted remote PDF and Lex.uz legal-page ingestion | P0 |
 | Structured text extraction | P0 |
 | Regulatory obligation extraction | P0 |
 | Initial compliance assessment | P0 |
@@ -183,34 +182,34 @@ A production release requires role-based permissions. The public hackathon demo 
 
 This is the primary product workflow.
 
-## Step 1: Bank Profile
+## Step 1: Organization Profile
 
-The user opens a bank workspace.
+The user opens a regulated-organization workspace.
 
-The bank profile includes:
+The organization profile includes:
 
-- Bank name.
+- Organization name.
 - Organization type.
 - Country and regulatory jurisdiction.
-- Banking activities.
-- Available financial products.
+- Business activities and fintech domains.
+- Available financial products and services.
 - Relevant departments.
 - Preferred document language.
 
 Example:
 
-**Bank name:** DemoBank UZ
+**Organization name:** DemoFintech UZ
 
-**Organization type:** Commercial bank
+**Organization type:** Payment service provider
 
 **Activities:**
 
-- Retail banking.
-- Corporate banking.
-- Payment cards.
+- Payment processing.
+- E-wallets and electronic money.
 - Digital customer onboarding.
-- Domestic money transfers.
-- SME lending.
+- Merchant acquiring.
+- Domestic transfers.
+- Banking partnerships.
 
 **Departments:**
 
@@ -220,7 +219,7 @@ Example:
 - Retail Operations.
 - AML Monitoring.
 
-These details must influence applicability analysis rather than serving as decorative metadata.
+These details must influence applicability analysis rather than serving as decorative metadata. Support other organization types, including commercial banks, payment organizations, electronic-money providers, and other regulated fintech businesses.
 
 ## Step 2: Upload Internal Policies
 
@@ -270,9 +269,9 @@ Document structure matters because a finding must refer to a specific policy cla
 
 ## Step 4: Regulatory Applicability
 
-The system reads the bank profile and retrieves potentially relevant regulatory obligations.
+The system reads the organization profile and retrieves potentially relevant regulatory obligations.
 
-For each obligation, it determines whether the bank's declared activities fall within its scope.
+For each obligation, it determines whether the organization's declared activities and legal entity type fall within its scope.
 
 Possible classifications:
 
@@ -342,7 +341,7 @@ When a candidate change is detected, create a pending update for administrator r
 
 ## Step 1: Import Regulation
 
-The user uploads a regulatory document or enters its metadata and text.
+The user uploads a regulatory document, enters its metadata and text, or supplies an official source URL. For allowlisted sources, the backend fetches supported PDF files or Lex.uz `/docs/{id}` pages and sends them through the same background ingestion pipeline. HTML extraction must target the legal document body, not navigation or controls.
 
 Required fields:
 
@@ -351,13 +350,15 @@ Required fields:
 - Document number, if available.
 - Publication or registration date, if known.
 - Effective date, if known.
-- Document file or text.
+- Document file, text, or supported official source URL.
+
+For Lex.uz `/docs/{id}` pages, extract the legal body from the HTML (including headings and article/paragraph boundaries), not navigation, menus, or page controls. Preserve the requested URL, selected revision/date parameters, retrieval timestamp, content hash, page title, language when detectable, and stable Lex element IDs as source references. Never treat the page's current presentation as proof that a version is legally applicable without verifying its metadata and effective dates.
 
 Optional fields:
 
 - Source URL.
 - Superseded regulation or version.
-- Relevant banking category.
+- Relevant fintech/regulatory domain and covered entity types.
 
 Unknown legal metadata must remain unknown rather than being generated by the model.
 
@@ -395,7 +396,7 @@ When only the new version exists, the system can perform policy impact analysis 
 
 For each new or modified obligation:
 
-1. Determine whether the bank's activities are in scope.
+1. Determine whether the organization's activities and entity type are in scope.
 2. Search existing internal policies for related provisions.
 3. Compare the new requirement with current policy evidence.
 4. Identify possible gaps.
@@ -406,7 +407,7 @@ For each new or modified obligation:
 
 The user receives a structured impact report with reviewable findings.
 
-The report is saved and becomes part of the bank's assessment history.
+The report is saved and becomes part of the organization's assessment history.
 
 ---
 
@@ -518,17 +519,17 @@ Automated retrieval must be limited to sources whose access and reuse terms perm
 
 ---
 
-# 7. Synthetic Banking Dataset
+# 7. Synthetic FinTech Dataset
 
-The hackathon does not provide banking data. The team must create its own.
+The hackathon does not provide organization data. The team must create synthetic data for a fictional fintech business and, where useful, a fictional bank profile.
 
 ## 7.1 Dataset Composition
 
-Create a fictional bank with five policy documents:
+Create a fictional fintech organization with policy documents covering more than one regulatory domain:
 
-**Document 1: Bank Profile**
+**Document 1: Organization Profile**
 
-Includes products, customer segments, banking activities, departments, and organizational responsibilities.
+Includes legal entity type, products, customer segments, fintech activities, departments, and organizational responsibilities.
 
 **Document 2: Customer Identification Policy**
 
@@ -537,6 +538,10 @@ Includes identification procedures, digital onboarding, verification methods, an
 **Document 3: AML Internal Control Policy**
 
 Includes customer risk assessment, transaction monitoring responsibilities, internal controls, and escalation processes.
+
+**Additional domain coverage:**
+
+Include a synthetic payments operations or electronic-money policy to exercise requirements from the payments and payment-systems domain. AML/KYC remains one supported domain among several, not the sole regulatory scope.
 
 **Document 4: Beneficial Ownership Policy**
 
@@ -555,7 +560,7 @@ The synthetic data must include several types of cases:
 - An obligation for which no corresponding policy evidence exists.
 - A policy that covers only part of a requirement.
 - A policy using different language but expressing the same requirement.
-- A regulation that does not apply to the fictional bank.
+- A regulation that does not apply to the fictional organization type or activities.
 - A requirement whose effective date is in the future.
 - An ambiguous case that requires human interpretation.
 
@@ -563,14 +568,14 @@ The synthetic data must include several types of cases:
 
 1. Select genuine regulatory obligations.
 2. Extract and verify their source clauses.
-3. Write synthetic bank policies covering selected obligations.
+3. Write synthetic fintech policies covering selected obligations across the chosen domains.
 4. Introduce deliberate inconsistencies.
 5. Include compliant and ambiguous cases.
 6. Review the cases manually.
 7. Record the expected classification and evidence.
 8. Create separate evaluation documents that are not used when designing prompts.
 
-Synthetic bank documents must be clearly identified as fictional.
+Synthetic organization documents must be clearly identified as fictional.
 
 ## 7.4 Ground Truth
 
@@ -598,7 +603,7 @@ The evaluation dataset should be committed to the repository with its generation
 
 The MVP must use a multi-stage pipeline.
 
-A single instruction that sends all documents to an LLM and asks whether the bank is compliant is not an acceptable technical design.
+A single instruction that sends all documents to an LLM and asks whether the organization is compliant is not an acceptable technical design.
 
 ## 8.1 Pipeline Stages
 
@@ -612,7 +617,7 @@ Extracts atomic obligations and their metadata into structured objects.
 
 **Stage 3: Applicability Analysis**
 
-Evaluates whether individual obligations apply to the bank's declared activities.
+Evaluates whether individual obligations apply to the organization's declared activities and entity type.
 
 **Stage 4: Evidence Retrieval**
 
@@ -654,7 +659,7 @@ Optional improvement:
 - Hybrid keyword and vector retrieval.
 - Candidate reranking.
 
-For production, embeddings must be generated inside the bank's infrastructure.
+For production, embeddings must be generated inside the regulated organization's infrastructure.
 
 The retrieval implementation must work even if the semantic embedding feature is unavailable.
 
@@ -705,7 +710,7 @@ Use the following statuses:
 
 The available internal policy text appears to address the regulatory requirement.
 
-This does not establish that the bank follows the procedure in practice.
+This does not establish that the organization follows the procedure in practice.
 
 **POTENTIAL_CONFLICT**
 
@@ -723,7 +728,7 @@ The legal requirement or policy language is ambiguous, conditional, or insuffici
 
 **NOT_APPLICABLE**
 
-The available bank profile provides explicit evidence that the obligation does not apply.
+The available organization profile provides explicit evidence that the obligation does not apply.
 
 **NOT_YET_EFFECTIVE**
 
@@ -790,13 +795,13 @@ All values must come from application data.
 
 The dashboard may initially show empty states and onboarding instructions.
 
-## 9.2 Screen: Bank Profile
+## 9.2 Screen: Organization Profile
 
 Fields:
 
-- Bank name.
+- Organization name.
 - Organization type.
-- Banking activities.
+- Fintech and financial-services activities.
 - Products.
 - Departments.
 - Primary language.
@@ -837,7 +842,7 @@ Allow opening an individual regulation to view its extracted obligations.
 
 Controls:
 
-- Select bank profile.
+- Select organization profile.
 - Select internal documents.
 - Select regulatory scope.
 - Set assessment date.
@@ -893,7 +898,7 @@ Use a two-column evidence layout.
 - Effective date.
 - Original-language text.
 
-**Right: Internal Bank Policy**
+**Right: Internal Organization Policy**
 
 - Policy name.
 - Relevant clause.
@@ -945,15 +950,15 @@ Implement a versioned REST API under `/api`.
 
 ## 10.1 Bank Management
 
-**POST /api/banks**
+**POST /api/organizations**
 
-Create a fictional bank profile.
+Create a fictional regulated-organization profile.
 
-**GET /api/banks/:id**
+**GET /api/organizations/:id**
 
-Retrieve the bank profile.
+Retrieve the organization profile.
 
-**PATCH /api/banks/:id**
+**PATCH /api/organizations/:id**
 
 Update supported profile fields.
 
@@ -961,14 +966,14 @@ Update supported profile fields.
 
 **POST /api/documents**
 
-Upload a bank policy or regulatory document.
+Upload an internal policy or regulatory document.
 
 Request: multipart form data.
 
 Fields:
 
 - file.
-- bank_id, when applicable.
+- organization_id, when applicable.
 - document_type.
 - declared_language, optional.
 
@@ -979,6 +984,10 @@ Response:
 - processing_status.
 - extracted_pages.
 - content_hash.
+
+**POST /api/documents/from-url**
+
+Fetch an allowlisted official PDF or Lex.uz `/docs/{id}` HTML page and enqueue the same background extraction pipeline. Restrict hosts and redirects, require HTTPS, enforce time and size limits, validate returned content, and store the original source URL, retrieval metadata, and content hash. Direct uploads remain capped at 5 MB; the remote-fetch limit is configurable. Preserve stable clause/element references from HTML and page references from PDFs.
 
 **GET /api/documents/:id**
 
@@ -1010,6 +1019,8 @@ Retrieve extracted obligations.
 
 Import a new regulatory document and verified metadata.
 
+Remote official-document ingestion is available through **POST /api/documents/from-url**. It accepts an allowlisted PDF URL or a Lex.uz `/docs/{id}` page URL, records the source URL, and queues extraction. It does not itself verify that an official page is the authoritative or applicable version.
+
 **GET /api/regulatory-sources**
 
 List configured official sources and their last check status/time.
@@ -1034,7 +1045,7 @@ Start a new initial compliance assessment.
 
 Request fields:
 
-- bank_id.
+- organization_id.
 - policy_document_ids.
 - regulation_ids or corpus_id.
 - assessment_date.
@@ -1103,7 +1114,7 @@ Output:
 
 Inputs:
 
-- bank_id.
+- organization_id.
 - new_regulation_version_id.
 - optional_previous_version_id.
 - policy_document_ids.
@@ -1127,7 +1138,7 @@ Recommended database: PostgreSQL.
 
 Core tables:
 
-## 11.1 banks
+## 11.1 organizations
 
 - id.
 - name.
@@ -1142,10 +1153,14 @@ Core tables:
 ## 11.2 documents
 
 - id.
-- bank_id nullable.
+- organization_id nullable.
 - document_type.
 - filename.
+- MIME type and file size.
 - storage_key.
+- source_type (upload or remote).
+- source_url, for remote sources.
+- retrieved_at, for remotely fetched content.
 - language.
 - declared_version.
 - content_hash.
@@ -1163,6 +1178,7 @@ Core tables:
 - content.
 - page_start.
 - page_end.
+- source_reference (PDF page, DOCX/TXT paragraph, or official HTML element/clause identifier).
 - text_start_offset.
 - text_end_offset.
 - section_order.
@@ -1250,7 +1266,7 @@ Core tables:
 ## 11.7 assessments
 
 - id.
-- bank_id.
+- organization_id.
 - assessment_type.
 - assessment_date.
 - status.
@@ -1351,17 +1367,19 @@ Recommended:
 
 - Node.js with TypeScript.
 - Fastify as the HTTP server framework.
-- TypeBox with Fastify's Type Provider for request/response schemas and runtime validation.
-- Drizzle ORM for typed PostgreSQL access and migrations.
-- PostgreSQL.
-- A Node.js PDF text-extraction library (for example, `pdf-parse`) for PDF extraction.
+- Fastify JSON Schema validation for request/response boundaries.
+- PostgreSQL, accessed with `pg` in the current ingestion module; adopt a typed ORM/migration tool when the domain schema grows.
+- `pg-boss` for durable background jobs on PostgreSQL.
+- `@firecrawl/pdf-inspector` for page-aware PDF extraction and scanned-page detection.
 - `mammoth` for DOCX text extraction.
+- `cheerio` for extracting legal text from supported Lex.uz HTML document pages.
+- `@fastify/swagger` and `@fastify/swagger-ui` for OpenAPI generation and interactive API documentation.
 
 Use a single backend service for the MVP.
 
 Keep route handlers thin and put business logic in application services. Isolate document extraction, AI-provider calls, retrieval, and persistence behind modules so they can be tested and replaced independently.
 
-A dedicated task queue is optional. Assessment execution must still expose observable processing state and errors.
+A separate worker process consumes durable document-processing jobs. Processing status and errors are persisted and observable through the API.
 
 For deployments with request-duration limits, run assessment processing as a job with its status persisted in the database rather than keeping the browser request open.
 
@@ -1381,7 +1399,7 @@ Each operation should accept a typed input and return a validated typed output.
 
 During the hackathon, the implementation may call a paid external model API using synthetic documents only.
 
-The production architecture must use a model hosted within the bank.
+The production architecture must use a model hosted within the regulated organization's infrastructure.
 
 Do not couple the legal comparison pipeline directly to one external provider's SDK.
 
@@ -1431,9 +1449,9 @@ Do not commit secrets.
 
 The production design must work without transmitting bank-confidential information to an external AI provider.
 
-All sensitive processing services remain inside the bank's infrastructure.
+All sensitive processing services remain inside the regulated organization's infrastructure.
 
-## 13.1 Components Inside the Bank
+## 13.1 Components Inside the Regulated Organization
 
 - Frontend application.
 - Backend API.
@@ -1447,13 +1465,13 @@ All sensitive processing services remain inside the bank's infrastructure.
 - Audit storage.
 - Identity and access controls.
 
-A local inference server could use Ollama or vLLM with a model approved for the bank's commercial deployment.
+A local inference server could use Ollama or vLLM with a model approved for the organization's commercial deployment.
 
 The selected model must be tested for Russian and Uzbek regulatory documents.
 
 ## 13.2 Network Policy
 
-Bank policy documents, embeddings, model requests, and generated compliance assessments remain inside the private environment.
+Organization policy documents, embeddings, model requests, and generated compliance assessments remain inside the private environment.
 
 No sensitive document content may be sent to third-party telemetry, analytics, or error-reporting systems.
 
@@ -1508,7 +1526,7 @@ Deploy both frontend and backend from the submitted repository.
 
 ## 14.1 Demo Data Protection
 
-The public application must use synthetic banking information only.
+The public application must use synthetic financial-organization information only.
 
 Required safeguards:
 
@@ -1596,8 +1614,8 @@ A confirmed finding may become a remediation task.
 
 The system must not:
 
-- Automatically modify bank policies.
-- Automatically mark the bank legally compliant.
+- Automatically modify organization policies.
+- Automatically mark the organization legally compliant.
 - Submit regulatory reports.
 - Automatically close findings without review.
 - Replace the compliance officer's responsibility.
@@ -1611,6 +1629,8 @@ This section is especially important because the technology criteria account for
 ## 16.1 Test Dataset
 
 Create a manually labelled evaluation dataset with a target of at least 30 to 40 obligation-policy test pairs.
+
+Distribute evaluation cases across the selected MVP fintech domains and relevant organization types; do not let AML/KYC dominate the test set merely because it is familiar.
 
 Include:
 
@@ -1713,15 +1733,12 @@ Report actual measurements even if results fall below the targets.
 
 Primary customers:
 
-- Commercial banks in Uzbekistan.
+- Commercial banks.
+- Payment organizations and payment-system operators.
+- Electronic-money providers.
+- Other regulated fintech and financial-service businesses in Uzbekistan.
 
-Potential future customers:
-
-- Microfinance banks.
-- Payment institutions.
-- Other regulated financial businesses.
-
-The MVP is specifically designed for bank compliance departments.
+The MVP is designed for compliance, legal, risk, and regulatory-affairs teams across these organization types.
 
 ## 17.2 Buyer and User
 
@@ -1818,13 +1835,13 @@ Do not exclude personnel costs merely because hackathon development used student
 
 - Confirm a specific regulatory domain.
 - Obtain approved internal documents.
-- Deploy inside the bank.
+- Deploy inside the regulated organization.
 - Establish a reviewed regulatory baseline.
 
 **Month 2:**
 
 - Run supervised assessments.
-- Compare results with the bank's existing manual process.
+- Compare results with the organization's existing manual process.
 - Measure quality, review time, and false positives.
 
 **Month 3:**
@@ -1895,10 +1912,10 @@ The hackathon should demonstrate credible early evidence of those advantages.
 
 Tasks:
 
-- Confirm the narrow AML/KYC scope.
+- Select a manageable initial set of fintech regulatory domains and official sources.
 - Select real official regulatory clauses.
 - Verify effective dates.
-- Prepare the fictional bank profile.
+- Prepare the fictional fintech organization profile.
 - Generate initial synthetic policies.
 - Design the evaluation labels.
 
@@ -1917,7 +1934,9 @@ Tasks:
 - Configure frontend and backend.
 - Configure database.
 - Implement document upload.
-- Implement PDF/DOCX extraction.
+- Implement PDF/DOCX/TXT extraction and allowlisted remote PDF/Lex.uz HTML ingestion.
+- Run ingestion asynchronously with persisted job and document statuses.
+- Publish API schemas through Swagger/OpenAPI.
 - Store structured document sections.
 
 Deliverable:
@@ -2024,7 +2043,7 @@ Target demo duration: two minutes.
 
 ## Part 1: Initial Assessment
 
-Open the fictional bank workspace.
+Open the fictional fintech organization workspace.
 
 Upload an internal customer-identification or AML policy.
 
@@ -2207,7 +2226,7 @@ The MVP must pass these checks.
 
 ## Functional
 
-- [ ] User can create a fictional bank profile.
+- [ ] User can create a fictional regulated-organization profile.
 - [ ] User can upload an original PDF, DOCX, or text policy.
 - [ ] Uploaded text is actually extracted and stored.
 - [ ] User can inspect the indexed regulatory corpus.
@@ -2218,6 +2237,9 @@ The MVP must pass these checks.
 - [ ] User can review and reject or confirm findings.
 - [ ] Human review actions persist in the database.
 - [ ] User can upload a new regulatory document.
+- [ ] User can ingest a supported official Lex.uz `/docs/{id}` page URL without relying on OCR.
+- [ ] Extracted official-page sections retain stable element references, source URL, retrieval time, and content hash.
+- [ ] OpenAPI/Swagger documentation describes the available API routes and payloads.
 - [ ] Scheduled monitoring checks at least one configured official source and records check status.
 - [ ] Detected changes appear as pending candidates and require human review before becoming current.
 - [ ] Approving an update creates a new immutable version; prior versions and assessment references remain unchanged.
@@ -2267,7 +2289,7 @@ The 23-hour MVP will not attempt to provide:
 - Transaction-level AML monitoring.
 - Automatic regulatory reporting to government authorities.
 - Autonomous modification of internal bank procedures.
-- Coverage of every Uzbek banking regulation.
+- Coverage of every Uzbek financial-sector or fintech regulation.
 - Fully automated legal interpretation.
 - Enterprise-wide workflow integration.
 - Production-ready user provisioning and SSO.
@@ -2292,7 +2314,7 @@ These features may be added in later development phases.
 | External LLM downtime | Error handling and retry controls |
 | Local model differs in accuracy | Separate production model benchmarking |
 | Data source licensing restrictions | Source register and permission review |
-| Overly broad banking regulation coverage | Restrict initial corpus to AML/KYC |
+| Broad fintech regulatory coverage is difficult to validate | Start with a curated multi-domain corpus and disclose entity, domain, and version coverage |
 | Weak hackathon differentiation | Measured evaluation, structured pipeline, domain-specific corpus |
 | Public demo exposes uploaded documents | Session isolation and synthetic-only restriction |
 
@@ -2300,11 +2322,11 @@ These features may be added in later development phases.
 
 # 26. Final Product Definition
 
-**RegCheck UZ is an AI-assisted banking regulatory compliance platform that compares internal policies against applicable regulations, identifies evidence-backed potential gaps, analyzes regulatory changes, and supports auditable human review.**
+**RegCheck UZ is an AI-assisted fintech regulatory compliance platform that compares internal policies against applicable financial-sector regulations, identifies evidence-backed potential gaps, analyzes regulatory changes, and supports auditable human review.**
 
 The MVP must prove five capabilities:
 
-1. **Understanding:** Extract specific requirements from real banking regulations.
+1. **Understanding:** Extract specific requirements from real financial-sector and fintech regulations.
 2. **Comparison:** Find and compare relevant internal policy provisions.
 3. **Explanation:** Provide traceable evidence for every substantive finding.
 4. **Accountability:** Keep compliance officers responsible for final decisions and preserve an audit trail.
@@ -2312,4 +2334,4 @@ The MVP must prove five capabilities:
 
 The central technical objective is to build a reliable **regulation-to-policy comparison pipeline**, supported by a versioned regulatory knowledge base, evidence retrieval, structured analysis, and human review.
 
-The initial compliance assessment is the primary MVP feature. Regulatory change impact analysis extends the same infrastructure and demonstrates how the platform can continue serving a bank after onboarding.
+The initial compliance assessment is the primary MVP feature. Regulatory change impact analysis extends the same infrastructure and demonstrates how the platform can continue serving regulated fintech organizations after onboarding.
