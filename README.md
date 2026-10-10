@@ -26,7 +26,8 @@ docker compose up --build
 - OpenAPI JSON: http://localhost:3000/docs/json
 - PostgreSQL: localhost:5432
 - Document API: `POST /api/documents`, `POST /api/documents/from-url`, `GET /api/documents/:id`,
-  `GET /api/documents/:id/sections`, `POST /api/documents/compare`
+  `GET /api/documents`, `GET /api/documents/:id`, `GET /api/documents/:id/sections`,
+  `POST /api/documents/compare`
 
 Uploaded files and extracted sections are stored in Docker-managed volumes and
 PostgreSQL. The API enqueues extraction; a separate worker processes the job.
@@ -47,6 +48,47 @@ providing `previous_document_id` and `current_document_id`. The initial matcher
 uses Lex element IDs, then falls back to article-number and text similarity when
 IDs change. Heuristic matches should be reviewed, especially for major rewrites
 or repeated similar paragraphs.
+
+### Document versions
+
+`document_id` remains the immutable snapshot/version ID used by status, sections,
+and comparison endpoints. `document_group_id` identifies the logical document.
+Existing records are grouped automatically at startup without changing their IDs
+or files. Lex.uz `/docs/{id}` and `/pdffile/{id}` imports group by Lex document ID
+and document type; other imports create a new group unless one is supplied.
+
+- `GET /api/document-groups`: list logical documents and version counts.
+- `GET /api/document-groups/{id}/versions`: list their stored snapshots.
+- `GET /api/documents`: list snapshots with `document_type`, `source_type`,
+  `processing_status`, `document_group_id`, and `q` filters; results are paginated
+  with `limit` (1–100, default 20) and `offset`.
+- The supported `document_type` enum is `policy`, `regulation`, `guidance`,
+  `procedure`, or `other`.
+- `POST /api/documents/from-url/versions` accepts a Lex.uz `/docs/{id}` URL,
+  discovers the current document and listed `ONDATE` revisions from the HTML,
+  and downloads them asynchronously. Poll `GET /api/document-imports/{import_id}`
+  for per-version status and resulting `document_id`s. Compare any two snapshots
+  with the existing comparison endpoint.
+- Both ingestion endpoints accept optional `document_group_id`, `version_label`,
+  and `revision_date` (`YYYY-MM-DD`). For policy uploads, pass the group ID from
+  the previous upload to create another version of the same policy.
+- Remote imports infer a revision date from Lex.uz's `ONDATE=DD.MM.YYYY` when an
+  explicit date is not supplied. This date is source-selection metadata, **not**
+  a verified effective date. With no date, the snapshot is labeled by import order.
+- Version numbers reflect import order; historical revisions can be imported
+  later. Repeated fetches are retained as separate snapshots, even with identical
+  content. No fetch automatically becomes an approved legal baseline.
+
+Example historical revision import:
+
+```json
+{
+  "url": "https://lex.uz/docs/4575788?ONDATE=22.12.2024",
+  "document_type": "regulation",
+  "declared_language": "ru",
+  "version_label": "Revision dated 22 December 2024"
+}
+```
 
 Example remote import:
 

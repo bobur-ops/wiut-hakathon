@@ -1,6 +1,7 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import ipaddr from "ipaddr.js";
+import * as cheerio from "cheerio";
 
 const configuredMaxSize = Number(process.env.REMOTE_DOCUMENT_MAX_BYTES ?? 20 * 1024 * 1024);
 const MAX_FILE_SIZE = Number.isSafeInteger(configuredMaxSize) && configuredMaxSize > 0
@@ -15,6 +16,55 @@ const allowedHosts = new Set(
 );
 
 export class RemoteDocumentError extends Error {}
+
+export async function discoverLexDocumentVersions(input: string) {
+  let initial: URL;
+  try {
+    initial = new URL(input);
+  } catch {
+    throw new RemoteDocumentError("Provide a valid Lex.uz document URL.");
+  }
+  if (!isLexDocumentPage(initial)) {
+    throw new RemoteDocumentError("Bulk version import only supports Lex.uz /docs/{id} pages.");
+  }
+  const downloaded = await downloadRemoteDocument(initial.toString());
+  const $ = cheerio.load(downloaded.contents.toString("utf8"));
+  const versions = new Map<string, { url: string; revisionDate: string | null; label: string }>();
+  const canonicalUrl = new URL(initial.pathname, initial.origin).toString();
+  versions.set(canonicalUrl, { url: canonicalUrl, revisionDate: null, label: "Current version" });
+
+  $(".lx_date_link").each((_, element) => {
+    const onclick = $(element).attr("onclick") ?? "";
+    const match = onclick.match(/lxOpenUrl\(['"](\/docs\/\d+\?ONDATE=(\d{2}\.\d{2}\.\d{4}))['"]\)/);
+    const path = match?.[1];
+    const dateText = match?.[2];
+    if (!path || !dateText || new URL(path, initial.origin).pathname !== initial.pathname) return;
+    const [day, month, year] = dateText.split(".");
+    const revisionDate = `${year}-${month}-${day}`;
+    const url = new URL(path, initial.origin).toString();
+    versions.set(url, { url, revisionDate, label: `Revision ${revisionDate}` });
+  });
+
+  if (initial.searchParams.has("ONDATE")) {
+    const dateText = initial.searchParams.get("ONDATE")!;
+    const dateMatch = dateText.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    const isoDate = dateMatch ? `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}` : "";
+    const parsedDate = new Date(isoDate);
+    if (isoDate && !Number.isNaN(parsedDate.getTime()) && parsedDate.toISOString().slice(0, 10) === isoDate) {
+      versions.set(initial.toString(), {
+        url: initial.toString(),
+        revisionDate: isoDate,
+        label: `Revision ${isoDate}`,
+      });
+    }
+  }
+
+  return {
+    title: $("title").text().replace(/\s+/g, " ").trim(),
+    versions: [...versions.values()].sort((left, right) =>
+      (left.revisionDate ?? "9999-12-31").localeCompare(right.revisionDate ?? "9999-12-31")),
+  };
+}
 
 function isLexDocumentPage(url: URL) {
   const hostname = url.hostname.toLowerCase().replace(/^www\./, "");

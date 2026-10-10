@@ -48,6 +48,14 @@ This file tracks completed work, current scope, decisions, and the next planned 
 - Fixed fallback matching to reserve exact text matches first and accept only reciprocal unique-best similarity matches across remaining candidates. Ambiguous unmatched elements and heuristic modifications carry `needs_review` in the API response.
 - Stable-ID comparisons now detect paragraph moves between numbered articles without treating regenerated parent IDs alone as changes.
 - Multi-page TXT evidence references include page and paragraph numbers to prevent duplicate citations.
+- Added logical `document_groups` above immutable document snapshots. Existing snapshot IDs/files are preserved, and Lex.uz imports group automatically by official document ID and document type.
+- Added per-snapshot version numbers (import order), labels, and optional revision dates; Lex.uz `ONDATE` supplies the requested revision date when no explicit date is provided. Revision dates are not verified effective dates or approval status.
+- Added `GET /api/document-groups` and `GET /api/document-groups/:id/versions`; both ingestion endpoints accept group ID, version label, and revision date. Internal-policy uploads can explicitly join an existing policy group.
+- Added paginated `GET /api/documents` with document type, source type, processing status, logical group, and text filters. Document type accepts the explicit enum `policy`, `regulation`, `guidance`, `procedure`, or `other`; Swagger now exposes enums for document, section, import-item, and batch statuses/types.
+- Added `POST /api/documents/from-url/versions`, which parses the Lex.uz revision links (accepting `ONDATE`, not `ONDATE2` compare links), creates an asynchronous import batch, and queues the current version plus every listed historical revision. Poll `GET /api/document-imports/:id` for download/extraction outcomes and snapshot IDs.
+- Bulk version discovery for Law 4575788 found six dated `ONDATE` revisions plus the current version; `ONDATE2` links are intentionally skipped because they are comparison UI links, not the version selector.
+- Imported all seven discovered snapshots for Law 4575788 into the local database and verified extraction completed for each. The bulk job initially rejected the null revision date on the current snapshot; fixed null handling and linked the separately completed current snapshot back into the batch. Batch status is now `COMPLETED`.
+- Serialized migration execution and per-group version allocation to avoid concurrent startup/import numbering races. Applied migration to the local database: three existing snapshots now belong to one logical document.
 - Added remote source provenance (`source_type`, `source_url`, `retrieved_at`) to document records. Local uploads are limited to 5 MB; trusted remote documents default to a separately configurable 20 MB limit (`REMOTE_DOCUMENT_MAX_BYTES`).
 - Added Swagger UI at `/docs` and OpenAPI JSON at `/docs/json`.
 - Added page-level source references for PDF sections. DOCX/TXT sections currently retain paragraph or section order; finer-grained structural references can be improved later.
@@ -67,13 +75,14 @@ This file tracks completed work, current scope, decisions, and the next planned 
 - Verified the exact Lex.uz example PDF downloads successfully (5,794,587 bytes), queues, and is correctly marked `UNSUPPORTED` because it has no extractable text and OCR is not enabled.
 - Verified the matching Lex.uz HTML page downloads and completes extraction with 590 sections, Russian text, and `lex-element:*` source references.
 - Verified ingestion of a revision-specific Lex.uz URL with `ONDATE=22.12.2024`; the requested URL and retrieval timestamp are persisted with the extracted sections.
+- Smoke-checked bulk revision discovery against Lex.uz Law 4575788: found six historical `ONDATE` dates plus the current version, with no `ONDATE2` comparison links included.
 - Verified the generated OpenAPI spec includes upload and remote-document routes; a localhost URL is rejected by the remote-fetch allowlist.
 - Stopped API, worker, and frontend containers after integration testing. PostgreSQL is left running for local development.
 
 ## Known limitations / follow-ups
 
 - `npm audit` reports three moderate advisories through Mammoth's `argparse` → `sprintf-js` dependency chain. The automated suggested fix downgrades Mammoth incompatibly; review this dependency before production use.
-- PostgreSQL schema currently covers only document metadata and extracted sections; no organization, regulation, policy-version, or assessment schema has been implemented yet.
+- PostgreSQL schema includes document groups, versioned snapshots, and extracted sections. Organization profiles, structured regulatory obligations, legal version approval/effective dates, and assessments are not implemented yet.
 - OCR is not implemented.
 - Some official PDFs, including the tested Lex.uz PDF, appear to be scanned/image-only and therefore need OCR; the corresponding HTML page provides a no-OCR route for that document.
 - Snapshot fallback matches are heuristic and should be reviewed, particularly for large rewrites or repeated similar paragraphs. Older completed records need re-fetching/reprocessing to populate normalized fields before comparison.
