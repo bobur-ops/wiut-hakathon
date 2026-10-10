@@ -1,0 +1,16 @@
+{
+  "name": "regcheck-uz",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"npm run dev -w @regcheck/api\" \"npm run dev -w @regcheck/web\"",
+    "build": "npm run build -w @regcheck/api && npm run build -w @regcheck/web",
+    "typecheck": "npm run typecheck -w @regcheck/api && npm run typecheck -w @regcheck/web"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

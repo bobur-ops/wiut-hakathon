@@ -1,0 +1,50 @@
+:root {
+  color: #172b27;
+  background: #f5f7fa;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.app-layout {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.content {
+  width: min(760px, calc(100% - 40px));
+  margin: 12vh auto 0;
+}
+
+.eyebrow {
+  color: #176b5b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.content h1.ant-typography {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.intro {
+  color: #64716e;
+  font-size: 16px;
+}
+
+.status-card {
+  margin-top: 32px;
+  box-shadow: 0 12px 32px rgb(20 44 38 / 6%);
+}
