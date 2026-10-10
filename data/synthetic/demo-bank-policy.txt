@@ -1,0 +1,79 @@
+DEMO BANK UZ
+CUSTOMER RECORDS AND INTERNAL CONTROL POLICY
+
+SYNTHETIC TEST DOCUMENT — NOT FOR OPERATIONAL USE
+
+Document version: 1.0
+Revision date: 10 October 2026
+Organization: Demo Bank UZ, a fictional commercial bank
+Responsible departments: Compliance and Customer Operations
+
+1. PURPOSE AND SCOPE
+
+This policy describes customer identification, customer-record retention,
+access to records, and selected internal review controls at Demo Bank UZ.
+It applies to retail accounts opened through branches and digital channels.
+It does not cover corporate customers, correspondent banking, or transaction
+monitoring procedures.
+
+2. CUSTOMER IDENTIFICATION
+
+Before activating an account, Customer Operations must obtain the customer's
+full name, date of birth, residential address, and an approved identity-document
+number. Staff must compare the customer with the identity document and record
+the method and date of verification.
+
+For digital onboarding, the customer must complete a live video check. A copy
+of the identity document is retained in the customer file. If the image is
+unclear, the account must not be activated until a staff member has reviewed
+the document.
+
+3. CUSTOMER RECORDS
+
+Customer Operations stores customer-identification records in the bank's
+restricted customer-document system. Access is limited to staff whose assigned
+work requires the records. Staff must not download customer files to personal
+devices or send them through personal email.
+
+The system records the staff account and time when a customer file is opened.
+The Compliance team reviews the access log once each calendar year. A manager
+may request an additional review after a suspected unauthorized access event.
+
+Customer-identification records are retained for three years after an account
+is closed. At the end of that period, Customer Operations may delete the
+records after receiving written approval from its department manager.
+
+4. CUSTOMER RISK REVIEW
+
+At onboarding, the Customer Operations officer assigns a low, medium, or high
+customer-risk category using the customer's country of residence and expected
+account activity. A high-risk classification requires approval from a
+Compliance manager before the account is activated.
+
+This policy does not specify a schedule for repeating the customer-risk review
+after onboarding. Staff may request a review when they notice a material change
+in customer information.
+
+5. RECORD REQUESTS
+
+When Compliance receives an internal request for a customer-identification
+record, the team should provide the record promptly. This policy does not set a
+deadline for responding to requests from external authorities or specify who
+must approve disclosure outside the bank.
+
+6. RESPONSIBILITIES AND EXCEPTIONS
+
+The Head of Customer Operations is responsible for staff training on this
+policy. The Compliance team owns the annual access-log review. Exceptions to
+the digital video-check procedure may be approved by a Customer Operations
+manager when the customer cannot complete the check; the manager must record
+the reason in the customer file.
+
+7. POLICY REVIEW
+
+The Compliance team reviews this policy every two years. The policy owner may
+also request an earlier review after a significant change to the bank's
+products or internal processes. This policy does not describe a process for
+monitoring changes in external laws or regulations.
+
+END OF SYNTHETIC TEST DOCUMENT

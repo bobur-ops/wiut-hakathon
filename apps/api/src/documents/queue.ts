@@ -2,6 +2,7 @@ import { PgBoss } from "pg-boss";
 
 export const DOCUMENT_QUEUE = "document-extraction";
 export const VERSION_IMPORT_QUEUE = "document-version-import";
+export const ASSESSMENT_QUEUE = "compliance-assessment";
 
 export function createJobQueue() {
   return new PgBoss(

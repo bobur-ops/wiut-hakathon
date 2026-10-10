@@ -118,8 +118,8 @@ export function registerDocumentRoutes(app: FastifyInstance, boss: PgBoss) {
     if (!Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isInteger(offset) || offset < 0) {
       return reply.code(400).send({ error: "limit must be 1–100 and offset must be a non-negative integer." });
     }
-    const conditions: string[] = [];
-    const values: unknown[] = [];
+    const conditions: string[] = ["(document.organization_id = $1 OR (document.organization_id IS NULL AND document.document_type IN ('regulation', 'guidance')))"];
+    const values: unknown[] = [request.identity!.organization_id];
     const addFilter = (sql: string, value: unknown) => {
       values.push(value);
       conditions.push(sql.replace("?", `$${values.length}`));
@@ -197,8 +197,8 @@ export function registerDocumentRoutes(app: FastifyInstance, boss: PgBoss) {
       try {
         await client.query("BEGIN");
         await client.query(
-          "INSERT INTO document_import_batches (id, source_url, status) VALUES ($1, $2, 'QUEUED')",
-          [batchId, request.body.url],
+          "INSERT INTO document_import_batches (id, source_url, status, organization_id) VALUES ($1, $2, 'QUEUED', $3)",
+          [batchId, request.body.url, request.identity!.organization_id],
         );
         for (const version of discovered.versions) {
           const itemId = randomUUID();
@@ -324,12 +324,14 @@ export function registerDocumentRoutes(app: FastifyInstance, boss: PgBoss) {
         },
       },
     },
-  }, async () => {
+  }, async (request) => {
     const { rows } = await pool.query(
       `SELECT groups.id, groups.title, groups.document_type, groups.source_key, groups.created_at,
               COUNT(documents.id)::integer AS version_count
        FROM document_groups AS groups JOIN documents ON documents.document_group_id = groups.id
-       GROUP BY groups.id ORDER BY groups.created_at DESC`,
+        WHERE documents.organization_id = $1 OR (documents.organization_id IS NULL AND documents.document_type IN ('regulation', 'guidance'))
+        GROUP BY groups.id ORDER BY groups.created_at DESC`,
+      [request.identity!.organization_id],
     );
     return { documents: rows };
   });
@@ -358,14 +360,16 @@ export function registerDocumentRoutes(app: FastifyInstance, boss: PgBoss) {
               filename, mime_type, file_size_bytes, content_hash, normalized_content_hash, document_type,
               declared_language, source_type, source_url, retrieved_at, processing_status,
               extraction_metadata, error_message, uploaded_at, processed_at
-       FROM documents WHERE document_group_id = $1 ORDER BY version_number DESC`,
-      [request.params.id],
+        FROM documents WHERE document_group_id = $1
+          AND (organization_id = $2 OR (organization_id IS NULL AND document_type IN ('regulation', 'guidance')))
+        ORDER BY version_number DESC`,
+      [request.params.id, request.identity!.organization_id],
     );
     return { document_group_id: request.params.id, versions: rows };
   });
 
   async function enqueueDocument(input: {
-    request: { log: { error: (error: unknown, message: string) => void } };
+    request: { log: { error: (error: unknown, message: string) => void }; identity: { organization_id: string } | null };
     contents: Buffer;
     filename: string;
     mimeType: string;
@@ -409,16 +413,16 @@ export function registerDocumentRoutes(app: FastifyInstance, boss: PgBoss) {
       const client = await pool.connect();
       try {
       await client.query("BEGIN");
-      version = await allocateVersion(client, input);
+       version = await allocateVersion(client, { ...input, organizationId: input.request.identity!.organization_id });
       await client.query(
         `INSERT INTO documents
           (id, filename, mime_type, file_size_bytes, storage_key, content_hash,
            document_type, declared_language, source_type, source_url, retrieved_at, processing_status,
-           document_group_id, version_number, version_label, revision_date)
+            document_group_id, version_number, version_label, revision_date, organization_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-            CASE WHEN $9 = 'REMOTE' THEN NOW() ELSE NULL END, 'QUEUED', $11, $12, $13, $14)`,
+             CASE WHEN $9 = 'REMOTE' THEN NOW() ELSE NULL END, 'QUEUED', $11, $12, $13, $14, $15)`,
         [id, filename, mimeType, contents.length, storageKey, contentHash, documentType, declaredLanguage, sourceType, sourceUrl ?? null,
-          version.documentGroupId, version.versionNumber, version.versionLabel, version.revisionDate],
+          version.documentGroupId, version.versionNumber, version.versionLabel, version.revisionDate, input.request.identity!.organization_id],
       );
       await client.query("COMMIT");
       } catch (error) {
@@ -454,6 +458,9 @@ export function registerDocumentRoutes(app: FastifyInstance, boss: PgBoss) {
   }
 
   app.post("/api/documents", {
+    // Multipart fields are parsed and validated in the handler below. Fastify's
+    // default JSON-schema body validation sees no parsed body without attachFieldsToBody.
+    attachValidation: true,
     schema: {
       tags: ["Documents"],
       summary: "Upload a document for background extraction",

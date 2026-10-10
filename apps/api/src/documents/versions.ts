@@ -4,6 +4,7 @@ import type { PoolClient } from "pg";
 export class DocumentVersionError extends Error {}
 
 export type VersionInput = {
+  organizationId?: string | null;
   documentGroupId?: string;
   versionLabel?: string;
   revisionDate?: string;
@@ -46,27 +47,31 @@ export async function allocateVersion(client: PoolClient, input: VersionInput) {
       throw new DocumentVersionError("revision_date must be a valid YYYY-MM-DD date.");
     }
   }
-  const sourceKey = lexSourceKey(input.sourceUrl, input.documentType);
+  const lexKey = lexSourceKey(input.sourceUrl, input.documentType);
+  const sourceKey = lexKey && input.organizationId ? `org:${input.organizationId}:${lexKey}` : lexKey;
   let groupId = input.documentGroupId;
   if (!groupId) {
     const result = await client.query(
-      `INSERT INTO document_groups (id, source_key, title, document_type)
-       VALUES ($1, $2, $3, $4)
+       `INSERT INTO document_groups (id, source_key, title, document_type, organization_id)
+        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (source_key) DO UPDATE SET source_key = EXCLUDED.source_key
        RETURNING id`,
-      [randomUUID(), sourceKey ?? `upload:${randomUUID()}`, input.filename, input.documentType],
+      [randomUUID(), sourceKey ?? `upload:${randomUUID()}`, input.filename, input.documentType, input.organizationId ?? null],
     );
     groupId = result.rows[0].id;
   }
   const group = await client.query("SELECT * FROM document_groups WHERE id = $1 FOR UPDATE", [groupId]);
   if (!group.rows[0]) throw new DocumentVersionError("Document group not found.");
+  if ((group.rows[0].organization_id ?? null) !== (input.organizationId ?? null)) {
+    throw new DocumentVersionError("Document group not found in your workspace.");
+  }
   if (group.rows[0].document_type !== input.documentType) {
     throw new DocumentVersionError("The version must have the same document type as its document group.");
   }
   if (sourceKey && group.rows[0].source_key !== sourceKey) {
     throw new DocumentVersionError("The Lex.uz URL does not belong to this document group.");
   }
-  if (!sourceKey && String(group.rows[0].source_key).startsWith("lex:")) {
+  if (!sourceKey && /(^|:)lex:/.test(String(group.rows[0].source_key))) {
     throw new DocumentVersionError("A Lex.uz document group requires a matching Lex.uz URL.");
   }
   const number = await client.query(

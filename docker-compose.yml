@@ -9,6 +9,9 @@ services:
       DOCUMENT_STORAGE_DIR: /data/uploads
       REMOTE_DOCUMENT_HOSTS: ${REMOTE_DOCUMENT_HOSTS:-lex.uz,www.lex.uz,cbu.uz,www.cbu.uz}
       REMOTE_DOCUMENT_MAX_BYTES: ${REMOTE_DOCUMENT_MAX_BYTES:-20971520}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:
@@ -26,6 +29,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-regcheck}:${POSTGRES_PASSWORD:-change-me}@db:5432/${POSTGRES_DB:-regcheck}
       DOCUMENT_STORAGE_DIR: /data/uploads
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
     depends_on:
       db:
         condition: service_healthy

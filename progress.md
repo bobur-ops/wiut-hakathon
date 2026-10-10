@@ -64,10 +64,57 @@ This file tracks completed work, current scope, decisions, and the next planned 
 - Scanned/image-only PDFs are not OCR-processed; extraction reports unsupported/no-text status or page warnings.
 - Updated the root `npm run dev` command to start frontend, API, and worker in watch mode and load `.env` when present.
 
+### Policy evidence retrieval — MVP checkpoint
+
+- Added `POST /api/policy-evidence/search` for PostgreSQL full-text retrieval over up to five selected policy/procedure snapshots, with a GIN search index.
+- Returns ranked original passages, section/document IDs, snapshot hashes/version labels, and page/source references. Retrieval does not generate findings or claim legal confidence.
+- Rejects missing documents, non-policy/procedure types, and unfinished extraction. Empty matches remain empty and explicitly do not establish a violation.
+- Unicode tokenization handles Russian and Uzbek text; matching is lexical, not semantic or cross-language. Queries use the first 64 distinct tokens.
+- Added service/route regression tests and an opt-in PostgreSQL integration test using temporary tables and rollback, leaving real document records unchanged.
+- This checkpoint is backend-only; the frontend remains the application starter. Workspace authorization is still absent, so this is for local synthetic data, not an unrestricted public deployment.
+
+### Async AI assessment and review — MVP checkpoint
+
+- Added assessment/finding/review tables and the `compliance-assessment` pg-boss queue.
+- `POST /api/assessments` accepts up to five completed policy snapshots and twenty caller-supplied obligations; `GET /api/assessments/:id` returns status and stored findings.
+- Added OpenAI Chat Completions structured-output adapter, configurable with server-side `OPENAI_API_KEY` and `OPENAI_MODEL` (default `gpt-4.1-mini`). The API reports a visible unavailable response when the key is absent. No real external model request has been verified in this environment.
+- Each obligation is lexically retrieved against selected documents; exact source excerpts and section IDs are checked before persistence. Fabricated/invalid citations are omitted and substantive unsupported findings are downgraded to `REQUIRES_REVIEW`.
+- Added `POST /api/findings/:id/review`; decisions are persisted in the finding status and append-only `finding_reviews` rows.
+- Obligation input is currently caller-supplied and explicitly unverified. No official verified legal corpus, organization profile, auth/workspace isolation, or assessment UI exists yet. Keep this API on synthetic local/demo data only.
+
+### Minimal assessment UI — MVP checkpoint
+
+- Replaced the frontend starter with a responsive assessment screen connected to the existing document, assessment, and review APIs.
+- Users can upload a policy, select extracted policy snapshots, provide a clearly-labelled requirement/citation, launch an assessment, poll status, inspect cited excerpts and source references, and confirm/reject/request evidence with reviewer notes.
+- Shows synthetic-only and no-auth warnings, plus honest empty/error/processing states. No hardcoded findings are shown.
+- Uses local system font stacks; no external font request is needed.
+- This is still a single-workspace demo UI, not a complete organization/document management product.
+
+### Upload smoke test
+
+- Added `data/synthetic/demo-bank-policy.txt`, a fictional policy with intentional test gaps (retention period, recurring risk review, external request deadline). It is explicitly marked synthetic and is not legal text.
+- Reproduced the UI's multipart upload `400 Bad Request` with curl. Fastify's JSON-schema validation rejected the multipart body before the route's existing file parser ran; enabled `attachValidation` for that route so multipart parsing and existing field/file checks handle it.
+- Retested upload against the running local API: returned `202 Accepted`, and the worker extracted the file successfully (`COMPLETED`, 22 sections).
+
+### Organization workspace and full-page shell — current checkpoint
+
+- Added organization owner registration/login/logout/me endpoints, salted scrypt passwords, hashed random 24-hour sessions, authentication rate limits, and configurable CORS origins.
+- Added organization ownership to new policies, assessment runs, logical groups, and import batches. Server access checks deny cross-organization document reads/searches, assessment creation/history, reviewer actions/history, and group writes. Workers preserve ownership through bulk imports and retrieval.
+- Legacy unassigned policies and assessments remain stored but are not visible to new accounts. Legacy unassigned regulation/guidance snapshots remain shared read-only references; new imports are organization-scoped.
+- Reviewer identity now comes from the signed-in account. Added assessment-history and review-history listing APIs, plus organization profile editing.
+- Replaced the centered demo screen with sign-in and a full-width application shell: persistent sidebar, overview with data-backed counts, policy upload/version updates/text viewer, regulatory snapshot browser, assessment history, review history, and settings.
+- Regulatory updates explicitly says monitoring is not enabled; assessment remains a clearly-labelled single-requirement preview pending corpus integration. No claim of automatic full-regulation coverage is made.
+- Added OpenAI key/model passthrough for both API and worker in Docker Compose.
+- Verified typecheck/build and all 21 tests including two-organization PostgreSQL integration: unauthenticated access, foreign policy/sections/groups, foreign retrieval/assessment/reviews, authoritative reviewer identity, and revoked sessions. Tests remove only their own synthetic fixtures.
+- This remains MVP security: no invitations, granular roles, MFA, password reset, malware screening, or distributed rate limiting. Use synthetic data only.
+
 ## Validation completed
 
+- Fixed reload-time session restoration: temporary connection/server failures no longer delete the saved token. The UI shows a retry action; only an actual rejected session (`401`) clears authentication. Cancelled React lifecycle requests cannot erase a newer session.
+- Added frontend session regression coverage for repeated identity requests, network/503 errors, stale 401 responses, and real session expiry. Extended PostgreSQL auth tests to verify repeated authenticated `/api/auth/me` calls remain valid.
+
 - `npm run typecheck` passes.
-- `npm run test -w @regcheck/api` passes eight regression tests for matching precedence, ambiguous candidates, paragraph moves, changed IDs, and TXT evidence references.
+- Existing eight document regression tests pass, alongside five retrieval service/route tests. An additional opt-in PostgreSQL retrieval integration test verifies ranking, selected-snapshot filtering, multilingual tokens, and evidence references.
 - `npm run build` passes (Vite reports a bundle-size advisory for the Ant Design chunk).
 - Smoke-tested snapshot comparison: correctly classifies an edited element and a newly added element by stable reference.
 - Smoke-tested a regulation paragraph whose Lex element ID changed and whose text was edited: comparison reports one `MODIFIED` change with no false addition/removal.
@@ -84,11 +131,11 @@ This file tracks completed work, current scope, decisions, and the next planned 
 ## Known limitations / follow-ups
 
 - `npm audit` reports three moderate advisories through Mammoth's `argparse` → `sprintf-js` dependency chain. The automated suggested fix downgrades Mammoth incompatibly; review this dependency before production use.
-- PostgreSQL schema includes document groups, versioned snapshots, and extracted sections. Organization profiles, structured regulatory obligations, legal version approval/effective dates, and assessments are not implemented yet.
+- PostgreSQL now includes organization accounts/sessions, profiles, organization-scoped documents, assessments, findings, and review history. Structured regulatory obligations and legal version approval/effective dates are still missing.
 - OCR is not implemented.
 - Some official PDFs, including the tested Lex.uz PDF, appear to be scanned/image-only and therefore need OCR; the corresponding HTML page provides a no-OCR route for that document.
 - Snapshot fallback matches are heuristic and should be reviewed, particularly for large rewrites or repeated similar paragraphs. Older completed records need re-fetching/reprocessing to populate normalized fields before comparison.
-- Authentication, authorization, workspace isolation, malware scanning, and production file-storage controls are not implemented.
+- Basic owner authentication and organization isolation are implemented and integration-tested. Team roles/invitations, malware scanning, and production file-storage controls are not implemented.
 - Monitoring worker/source checks and regulation version review workflow are planned but not implemented.
 - Automated extraction/comparison regression tests are available; API/database integration and job-transition tests still need to be added.
 
@@ -116,9 +163,8 @@ npm run dev
 
 ## Next suggested steps
 
-1. Add automated tests for file validation, extraction outcomes, and job status transitions.
-2. Test PDF extraction against representative Russian and Uzbek legal PDFs, including scanned and mixed PDFs.
-3. Refine DOCX structure extraction and location references if needed.
-4. Add document list/delete endpoints and define retention behavior.
-5. Once ingestion is reliable, implement section-aware retrieval/search.
-6. Then add regulation/version data across the selected fintech domains and the reviewed regulatory-source monitoring workflow.
+1. Configure a valid OpenAI key for the API and worker, then run one end-to-end synthetic assessment to verify provider response and measure latency/cost.
+2. Seed a small, manually reviewed, properly sourced obligation set and synthetic policy/evaluation cases; keep verified legal text separate from test prompts.
+3. Exercise the complete UI workflow with an unseen synthetic policy; improve any upload/poll/review issues found.
+4. Organization isolation and basic rate limits are in place. Validate the signed-in browser flow and deployment HTTPS/CORS before public synthetic-data deployment.
+5. Defer finer DOCX extraction, deletion/retention, OCR, scheduled monitoring, and broad evaluation until the working assessment demo is established. Document listing already exists.

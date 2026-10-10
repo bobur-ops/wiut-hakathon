@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { pool, migrate } from "../db.js";
 import { extractDocument, normalizeExtractedText, UnsupportedDocumentError } from "./extract.js";
-import { DOCUMENT_QUEUE, VERSION_IMPORT_QUEUE, createJobQueue } from "./queue.js";
+import { ASSESSMENT_QUEUE, DOCUMENT_QUEUE, VERSION_IMPORT_QUEUE, createJobQueue } from "./queue.js";
+import { processAssessment } from "../assessments/service.js";
 import { getStoredFilePath, storeUpload } from "./storage.js";
 import { downloadRemoteDocument } from "./remote.js";
 import { allocateVersion } from "./versions.js";
@@ -16,9 +17,14 @@ async function run() {
   await boss.start();
   await boss.createQueue(DOCUMENT_QUEUE);
   await boss.createQueue(VERSION_IMPORT_QUEUE);
+  await boss.createQueue(ASSESSMENT_QUEUE);
   await boss.work<{ importItemId: string }>(VERSION_IMPORT_QUEUE, async ([job]) => {
     if (!job) return;
     await importVersionItem(job.data.importItemId);
+  });
+  await boss.work<{ assessmentId: string }>(ASSESSMENT_QUEUE, async ([job]) => {
+    if (!job) return;
+    await processAssessment(job.data);
   });
   await boss.work<{ documentId: string }>(DOCUMENT_QUEUE, async ([job]) => {
     if (!job) return;
@@ -118,7 +124,7 @@ async function run() {
     }
   });
 
-  console.info(`Document worker listening on queue: ${DOCUMENT_QUEUE}`);
+  console.info(`Document worker listening on queues: ${DOCUMENT_QUEUE}, ${VERSION_IMPORT_QUEUE}, ${ASSESSMENT_QUEUE}`);
 }
 
 async function refreshBatchStatus(batchId: string) {
@@ -152,7 +158,8 @@ async function importVersionItem(itemId: string) {
   const claimed = await pool.query(
     `UPDATE document_import_items SET status = 'DOWNLOADING', error_message = NULL
      WHERE id = $1 AND status = 'QUEUED'
-     RETURNING batch_id, source_url, revision_date::text, version_label, declared_language`,
+      RETURNING batch_id, source_url, revision_date::text, version_label, declared_language,
+        (SELECT organization_id FROM document_import_batches WHERE id = document_import_items.batch_id) AS organization_id`,
     [itemId],
   );
   const item = claimed.rows[0];
@@ -171,6 +178,7 @@ async function importVersionItem(itemId: string) {
     try {
       await client.query("BEGIN");
       const version = await allocateVersion(client, {
+        organizationId: item.organization_id,
         sourceUrl: item.source_url,
         documentType: "regulation",
         filename: downloaded.filename,
@@ -181,10 +189,10 @@ async function importVersionItem(itemId: string) {
         `INSERT INTO documents
           (id, filename, mime_type, file_size_bytes, storage_key, content_hash, document_type,
            declared_language, source_type, source_url, retrieved_at, processing_status,
-           document_group_id, version_number, version_label, revision_date)
-         VALUES ($1, $2, $3, $4, $5, $6, 'regulation', $7, 'REMOTE', $8, NOW(), 'QUEUED', $9, $10, $11, $12)`,
+            document_group_id, version_number, version_label, revision_date, organization_id)
+          VALUES ($1, $2, $3, $4, $5, $6, 'regulation', $7, 'REMOTE', $8, NOW(), 'QUEUED', $9, $10, $11, $12, $13)`,
         [documentId, downloaded.filename, downloaded.mimeType, downloaded.contents.length, storageKey, contentHash,
-          item.declared_language, item.source_url, version.documentGroupId, version.versionNumber, version.versionLabel, version.revisionDate],
+          item.declared_language, item.source_url, version.documentGroupId, version.versionNumber, version.versionLabel, version.revisionDate, item.organization_id],
       );
       await client.query(
         "UPDATE document_import_items SET document_id = $2, status = 'QUEUED_EXTRACTION' WHERE id = $1",

@@ -1,6 +1,6 @@
 import { buildApp } from "./app.js";
 import { migrate, pool } from "./db.js";
-import { createJobQueue, DOCUMENT_QUEUE, VERSION_IMPORT_QUEUE } from "./documents/queue.js";
+import { ASSESSMENT_QUEUE, createJobQueue, DOCUMENT_QUEUE, VERSION_IMPORT_QUEUE } from "./documents/queue.js";
 
 const boss = createJobQueue();
 const port = Number(process.env.API_PORT ?? 3000);
@@ -12,7 +12,8 @@ try {
   boss.on("error", (error) => console.error("pg-boss error", error));
   await boss.start();
   await boss.createQueue(DOCUMENT_QUEUE);
-  await boss.createQueue(VERSION_IMPORT_QUEUE);
+await boss.createQueue(VERSION_IMPORT_QUEUE);
+await boss.createQueue(ASSESSMENT_QUEUE);
   app = buildApp(boss);
   await app.listen({ port, host });
 } catch (error) {

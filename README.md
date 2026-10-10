@@ -1,8 +1,7 @@
 # RegCheck UZ
 
 Starter monorepo for the RegCheck UZ frontend and backend. Document ingestion is
-implemented; regulatory monitoring, compliance assessment, and AI workflows are
-not implemented yet.
+implemented alongside lexical policy evidence retrieval, an MVP async assessment/review API, and an authenticated organization application shell.
 
 ## Stack
 
@@ -31,6 +30,45 @@ docker compose up --build
 
 Uploaded files and extracted sections are stored in Docker-managed volumes and
 PostgreSQL. The API enqueues extraction; a separate worker processes the job.
+
+## Organization workspace
+
+Open the web app and choose **Create a workspace**. Use a fictional organization,
+an email identifier, and a unique demo password (at least 6 characters). Each
+registration creates one organization and its owner account; there is no email
+verification, account recovery, or team invitations yet.
+
+The full-width application has an overview, policy management, regulatory library,
+assessment history, review history, and organization settings. The regulatory
+updates screen explicitly reports that scheduled monitoring is **not enabled**.
+The assessment screen remains a single-requirement comparison preview; automatic
+corpus-wide assessment is the next implementation milestone.
+
+All workspace API routes now require `Authorization: Bearer <token>`. Obtain a
+token from `POST /api/auth/register` or `POST /api/auth/login`. Registration fields
+are `email`, `password`, `name`, and `organization_type` (`commercial_bank`,
+`payment_organization`, `electronic_money_provider`, or `other_fintech`). Login
+requires `email` and `password`. `GET /api/auth/me` verifies identity;
+`POST /api/auth/logout` revokes the current session. Health and authentication
+entry routes remain public; Swagger describes the API without exposing data.
+
+Passwords use salted scrypt hashes; session tokens are random, stored hashed on
+the server, expire after 24 hours, and are held in browser sessionStorage. HTTPS
+is required outside localhost. Rate limits apply globally and to login/register;
+limits are process-local, not distributed. Configure browser origins with
+`CORS_ORIGINS` (comma-separated, defaults to localhost:5173 and 127.0.0.1:5173).
+
+New policies, assessments, version groups, and import batches are organization-owned.
+The server denies cross-organization reads, searches, assessments, reviews, and
+version-group writes, including requests using another organization's IDs. Existing
+unassigned policy documents/assessments are preserved but hidden: upload the sample
+policy into your new workspace instead of automatically claiming historical data.
+Existing unassigned regulation/guidance imports remain a shared, read-only reference
+library. New imports belong to the signed-in organization.
+
+This is MVP authorization, not production enterprise security: there are no
+granular roles, SSO, MFA, malware screening, password recovery, or encrypted-file
+controls. Continue using synthetic policies only.
 Uploads, remote PDFs, and supported Lex.uz legal pages are queued for background
 extraction. Uploads are limited to 5 MB; remote documents default to a separate
 20 MB limit. Remote fetching is
@@ -94,9 +132,83 @@ Example remote import:
 
 ```sh
 curl -X POST http://localhost:3000/api/documents/from-url \
+  -H 'Authorization: Bearer <your-session-token>' \
   -H 'content-type: application/json' \
   -d '{"url":"https://lex.uz/docs/4575788","document_type":"regulation","declared_language":"ru"}'
 ```
+
+## Policy evidence search
+
+`POST /api/policy-evidence/search` searches extracted sections of up to five selected
+policy/procedure snapshots. Select IDs from `GET /api/documents`; extraction must
+be `COMPLETED` or `COMPLETED_WITH_WARNINGS`.
+
+```json
+{
+  "query": "customer identification records",
+  "policy_document_ids": ["<completed-policy-document-uuid>"],
+  "limit": 5
+}
+```
+
+Returns ranked passages with original text, section/document IDs, snapshot hash,
+version label, and page/section references. Missing references remain null. This
+is PostgreSQL lexical full-text search, not an AI assessment: Russian and Uzbek
+tokens are supported, but translations, synonyms, and inflections are not matched
+automatically. The first 64 distinct query tokens are used. Empty results do not
+prove a violation, and relevance scores are not legal confidence scores.
+
+Workspace authentication and ownership checks are enforced by the API. Use
+synthetic data only; enterprise security controls are still out of scope.
+
+## MVP AI assessment
+
+Configure `OPENAI_API_KEY` and optionally `OPENAI_MODEL` in the API **and worker**
+environment (`gpt-4.1-mini` is the default). Keep the key server-side. The first
+assessment slice accepts caller-supplied obligations so the team can demonstrate
+the workflow before building a verified regulatory corpus. These inputs are not
+verified legal requirements. Use synthetic documents only.
+
+Start an async assessment with `POST /api/assessments`:
+
+```json
+{
+  "policy_document_ids": ["<completed-policy-document-uuid>"],
+  "obligations": [{
+    "id": "demo-record-retention",
+    "citation": "Synthetic demo obligation — not legal text",
+    "requirement": "Describe how customer records are retained and made available for review."
+  }]
+}
+```
+
+The API returns `202` and an `assessment_id`. Poll `GET /api/assessments/{id}`
+for status and saved findings. The worker retrieves passages, calls OpenAI with
+structured output, and verifies cited section IDs and exact excerpts against
+retrieved text. Invalid citations are dropped and substantive findings are
+downgraded to `REQUIRES_REVIEW`. Each finding includes snapshot hashes and source
+references. No matching passage is labelled only as missing evidence, never as
+proof of a violation.
+
+Record a reviewer decision with `POST /api/findings/{id}/review`:
+
+```json
+{ "decision": "NEEDS_EVIDENCE", "comment": "Check another procedure." }
+```
+
+Assessment states are `QUEUED`, `PROCESSING`, `COMPLETED`, and `FAILED`.
+Findings have a separate `PENDING`, `CONFIRMED`, `REJECTED`, or `NEEDS_EVIDENCE`
+review state. Reviewer identity is taken from the authenticated account, not from
+a caller-supplied name. Do not use real confidential documents or treat model output
+as legal advice.
+
+The web app provides policy upload/selection, extraction readiness, a synthetic
+requirement form, queued assessment polling, citation display, and human review
+controls. Use the sample obligation as a workflow smoke test only, not as a real
+regulatory requirement. The UI does not yet provide a verified obligation library.
+
+Example synthetic policy: `data/synthetic/demo-bank-policy.txt`. It is intentionally
+incomplete for testing; do not use it operationally or treat it as legal guidance.
 
 ## Run the apps without Docker
 
@@ -117,3 +229,16 @@ the frontend, API, and extraction worker in watch mode.
 npm run typecheck
 npm run build
 ```
+
+API regression tests: `npm run test -w @regcheck/api`.
+Frontend session regression tests: `npm run test -w @regcheck/web`.
+To also test retrieval and organization isolation against running local PostgreSQL:
+
+```sh
+RUN_DB_TESTS=1 node --env-file-if-exists=.env --import tsx --test apps/api/test/*.test.ts
+```
+
+The retrieval test uses temporary tables and rollback. The auth integration test
+creates two synthetic organizations and uploads a test policy, checks ID-based
+access attacks, and removes its own accounts/files/records afterwards. Existing
+application documents are not reassigned or removed.

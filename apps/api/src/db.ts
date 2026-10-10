@@ -63,6 +63,9 @@ export async function migrate() {
 
     CREATE INDEX IF NOT EXISTS document_sections_document_idx
       ON document_sections(document_id, section_index);
+    CREATE INDEX IF NOT EXISTS document_sections_search_idx
+      ON document_sections USING GIN
+      (to_tsvector('simple', COALESCE(heading, '') || ' ' || content));
     CREATE INDEX IF NOT EXISTS documents_status_idx
       ON documents(processing_status, uploaded_at DESC);
 
@@ -125,6 +128,67 @@ export async function migrate() {
     );
     ALTER TABLE document_import_items ADD COLUMN IF NOT EXISTS declared_language TEXT;
     CREATE INDEX IF NOT EXISTS document_import_items_batch_idx ON document_import_items(batch_id, created_at);
+
+    CREATE TABLE IF NOT EXISTS assessments (
+      id UUID PRIMARY KEY,
+      status TEXT NOT NULL CHECK (status IN ('QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED')),
+      assessment_date DATE NOT NULL,
+      policy_document_ids UUID[] NOT NULL,
+      obligations JSONB NOT NULL,
+      model_identifier TEXT,
+      error_message TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      started_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS findings (
+      id UUID PRIMARY KEY,
+      assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+      obligation_id TEXT NOT NULL,
+      classification TEXT NOT NULL CHECK (classification IN ('SUPPORTED_IN_POLICY', 'POTENTIAL_CONFLICT', 'MISSING_EVIDENCE', 'REQUIRES_REVIEW')),
+      applicability TEXT NOT NULL CHECK (applicability IN ('APPLICABLE', 'NOT_APPLICABLE', 'UNCERTAIN')),
+      explanation TEXT NOT NULL,
+      proposed_action TEXT NOT NULL,
+      limitations JSONB NOT NULL DEFAULT '[]'::jsonb,
+      evidence JSONB NOT NULL DEFAULT '[]'::jsonb,
+      review_status TEXT NOT NULL DEFAULT 'PENDING' CHECK (review_status IN ('PENDING', 'CONFIRMED', 'REJECTED', 'NEEDS_EVIDENCE')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (assessment_id, obligation_id)
+    );
+    CREATE INDEX IF NOT EXISTS findings_assessment_idx ON findings(assessment_id, created_at);
+    CREATE TABLE IF NOT EXISTS finding_reviews (
+      id UUID PRIMARY KEY,
+      finding_id UUID NOT NULL REFERENCES findings(id) ON DELETE CASCADE,
+      decision TEXT NOT NULL CHECK (decision IN ('CONFIRMED', 'REJECTED', 'NEEDS_EVIDENCE')),
+      reviewer_identifier TEXT NOT NULL,
+      comment TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS organizations (
+      id UUID PRIMARY KEY,
+      name TEXT NOT NULL,
+      organization_type TEXT NOT NULL,
+      activities JSONB NOT NULL DEFAULT '[]'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY,
+      organization_id UUID NOT NULL REFERENCES organizations(id),
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      token_hash TEXT PRIMARY KEY,
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '24 hours'
+    );
+    ALTER TABLE documents ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+    ALTER TABLE document_groups ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+    ALTER TABLE document_import_batches ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
+    CREATE INDEX IF NOT EXISTS documents_organization_idx ON documents(organization_id, uploaded_at DESC);
+    CREATE INDEX IF NOT EXISTS assessments_organization_idx ON assessments(organization_id, created_at DESC);
   `);
     await client.query("COMMIT");
   } catch (error) {
