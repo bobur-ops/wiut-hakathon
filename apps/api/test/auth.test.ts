@@ -77,7 +77,7 @@ test("organization API enforces authentication, document/assessment isolation, g
     }
     const search = await app.inject({ method: "POST", url: "/api/policy-evidence/search", headers: authB, payload: { query: "customer records", policy_document_ids: [docId] } });
     assert.equal(search.statusCode, 404);
-    const foreignAssessment = await app.inject({ method: "POST", url: "/api/assessments", headers: authB, payload: { policy_document_ids: [docId], obligations: [{ id: "test", citation: "synthetic", requirement: "Retain customer records." }] } });
+    const foreignAssessment = await app.inject({ method: "POST", url: "/api/assessments", headers: authB, payload: { policy_document_ids: [docId] } });
     assert.equal(foreignAssessment.statusCode, 404);
     for (const [type, owner, allowedB] of [["regulation", null, true], ["regulation", orgIds[0], false], ["policy", null, false]] as const) {
       const id = randomUUID(); documentIds.push(id);
@@ -93,6 +93,7 @@ test("organization API enforces authentication, document/assessment isolation, g
       VALUES ($1, 'COMPLETED', CURRENT_DATE, $2, '[]', $3)`, [assessmentId, [docId], orgIds[0]]);
     assert.equal((await app.inject({ method: "GET", url: `/api/assessments/${assessmentId}`, headers: authA })).statusCode, 200);
     assert.equal((await app.inject({ method: "GET", url: `/api/assessments/${assessmentId}`, headers: authB })).statusCode, 404);
+    assert.equal((await app.inject({ method: "POST", url: `/api/assessments/${assessmentId}/cancel`, headers: authB, payload: {} })).statusCode, 404);
     const runsB = await app.inject({ method: "GET", url: "/api/assessments", headers: authB });
     assert.deepEqual(runsB.json().assessments, []);
     const findingId = randomUUID();

@@ -189,6 +189,114 @@ export async function migrate() {
     ALTER TABLE document_import_batches ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id);
     CREATE INDEX IF NOT EXISTS documents_organization_idx ON documents(organization_id, uploaded_at DESC);
     CREATE INDEX IF NOT EXISTS assessments_organization_idx ON assessments(organization_id, created_at DESC);
+    CREATE TABLE IF NOT EXISTS regulatory_sources (
+      id UUID PRIMARY KEY,
+      organization_id UUID REFERENCES organizations(id),
+      name TEXT NOT NULL,
+      source_url TEXT NOT NULL,
+      enabled BOOLEAN NOT NULL DEFAULT TRUE,
+      check_interval_minutes INTEGER NOT NULL DEFAULT 60 CHECK (check_interval_minutes >= 15),
+      next_check_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_checked_at TIMESTAMPTZ,
+      last_successful_check_at TIMESTAMPTZ,
+      last_status TEXT NOT NULL DEFAULT 'NEVER_CHECKED',
+      last_error TEXT,
+      last_text_hash TEXT,
+      last_document_id UUID REFERENCES documents(id),
+      accepted_document_id UUID REFERENCES documents(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS regulatory_sources_owner_url_idx ON regulatory_sources
+      (COALESCE(organization_id, '00000000-0000-0000-0000-000000000000'::uuid), source_url);
+    CREATE TABLE IF NOT EXISTS regulatory_source_checks (
+      id UUID PRIMARY KEY,
+      source_id UUID NOT NULL REFERENCES regulatory_sources(id),
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMPTZ,
+      status TEXT NOT NULL,
+      content_hash TEXT,
+      text_hash TEXT,
+      error_message TEXT,
+      document_id UUID REFERENCES documents(id)
+    );
+    CREATE TABLE IF NOT EXISTS regulatory_update_candidates (
+      id UUID PRIMARY KEY,
+      source_id UUID NOT NULL REFERENCES regulatory_sources(id),
+      check_id UUID NOT NULL REFERENCES regulatory_source_checks(id),
+      previous_document_id UUID NOT NULL REFERENCES documents(id),
+      new_document_id UUID NOT NULL REFERENCES documents(id),
+      comparison JSONB NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDING_REVIEW' CHECK (status IN ('PENDING_REVIEW', 'APPROVED', 'REJECTED')),
+      detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      reviewer_identifier TEXT,
+      review_note TEXT,
+      reviewed_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS regulatory_checks_source_idx ON regulatory_source_checks(source_id, started_at DESC);
+    CREATE INDEX IF NOT EXISTS regulatory_updates_source_idx ON regulatory_update_candidates(source_id, detected_at DESC);
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS corpus_document_ids UUID[] NOT NULL DEFAULT '{}';
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS organization_profile JSONB NOT NULL DEFAULT '{}'::jsonb;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS input_snapshots JSONB NOT NULL DEFAULT '[]'::jsonb;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS processing_stage TEXT NOT NULL DEFAULT 'QUEUED';
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS progress JSONB NOT NULL DEFAULT '{}'::jsonb;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS pipeline_version TEXT NOT NULL DEFAULT 'manual-v1';
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS coverage_warnings JSONB NOT NULL DEFAULT '[]'::jsonb;
+    ALTER TABLE findings ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '';
+    ALTER TABLE findings DROP CONSTRAINT IF EXISTS findings_classification_check;
+    ALTER TABLE findings ADD CONSTRAINT findings_classification_check CHECK
+      (classification IN ('SUPPORTED_IN_POLICY', 'POTENTIAL_CONFLICT', 'MISSING_EVIDENCE', 'REQUIRES_REVIEW', 'NOT_APPLICABLE'));
+    CREATE TABLE IF NOT EXISTS regulatory_obligation_cache (
+      document_id UUID NOT NULL REFERENCES documents(id),
+      extractor_version TEXT NOT NULL,
+      obligations JSONB NOT NULL,
+      processed_sections INTEGER NOT NULL,
+      extracted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (document_id, extractor_version)
+    );
+    CREATE TABLE IF NOT EXISTS regulatory_extraction_attempts (
+      id BIGSERIAL PRIMARY KEY,
+      document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+      extractor_version TEXT NOT NULL,
+      batch_index INTEGER NOT NULL,
+      attempt INTEGER NOT NULL,
+      response JSONB NOT NULL,
+      error_message TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS document_group_source_aliases (
+      source_key TEXT PRIMARY KEY,
+      document_group_id UUID NOT NULL REFERENCES document_groups(id),
+      verified_from_url TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    ALTER TABLE assessments DROP CONSTRAINT IF EXISTS assessments_status_check;
+    ALTER TABLE assessments ADD CONSTRAINT assessments_status_check CHECK (status IN ('QUEUED','PROCESSING','COMPLETED','FAILED','CANCELLED'));
+    CREATE UNIQUE INDEX IF NOT EXISTS assessments_one_active_per_org_idx ON assessments(organization_id)
+      WHERE organization_id IS NOT NULL AND status IN ('QUEUED','PROCESSING');
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS job_id UUID;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS baseline_assessment_id UUID;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS comparison_model TEXT;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS impact_document_id UUID;
+    CREATE UNIQUE INDEX IF NOT EXISTS assessment_impact_event_idx ON assessments(organization_id,impact_document_id) WHERE impact_document_id IS NOT NULL;
+    ALTER TABLE findings ADD COLUMN IF NOT EXISTS comparison_key TEXT;
+    ALTER TABLE findings ADD COLUMN IF NOT EXISTS duty_key TEXT;
+    ALTER TABLE assessments ADD COLUMN IF NOT EXISTS change_summary JSONB NOT NULL DEFAULT '{}'::jsonb;
+    ALTER TABLE findings ADD COLUMN IF NOT EXISTS change_status TEXT NOT NULL DEFAULT 'NEW';
+    ALTER TABLE findings ADD COLUMN IF NOT EXISTS reused_from_finding_id UUID;
+    CREATE INDEX IF NOT EXISTS findings_comparison_key_idx ON findings(comparison_key);
+    CREATE TABLE IF NOT EXISTS assessment_ai_usage (
+      id BIGSERIAL PRIMARY KEY,
+      assessment_id UUID NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+      model TEXT NOT NULL,
+      operation TEXT NOT NULL,
+      input_tokens INTEGER NOT NULL DEFAULT 0,
+      output_tokens INTEGER NOT NULL DEFAULT 0,
+      cached_tokens INTEGER NOT NULL DEFAULT 0,
+      estimated_cost_usd NUMERIC,
+      error_message TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
     await client.query("COMMIT");
   } catch (error) {

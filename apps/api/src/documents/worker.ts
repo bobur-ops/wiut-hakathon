@@ -3,11 +3,13 @@ import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { pool, migrate } from "../db.js";
 import { extractDocument, normalizeExtractedText, UnsupportedDocumentError } from "./extract.js";
-import { ASSESSMENT_QUEUE, DOCUMENT_QUEUE, VERSION_IMPORT_QUEUE, createJobQueue } from "./queue.js";
+import { ASSESSMENT_QUEUE, ASSESSMENT_IMPACT_QUEUE, DOCUMENT_QUEUE, VERSION_IMPORT_QUEUE, createJobQueue } from "./queue.js";
+import { processDocumentImpact, queueDocumentImpact } from "../assessments/impact.js";
 import { processAssessment } from "../assessments/service.js";
 import { getStoredFilePath, storeUpload } from "./storage.js";
 import { downloadRemoteDocument } from "./remote.js";
 import { allocateVersion } from "./versions.js";
+import { startRegulatoryMonitor } from "../monitoring/service.js";
 
 const boss = createJobQueue();
 
@@ -18,6 +20,11 @@ async function run() {
   await boss.createQueue(DOCUMENT_QUEUE);
   await boss.createQueue(VERSION_IMPORT_QUEUE);
   await boss.createQueue(ASSESSMENT_QUEUE);
+  await boss.createQueue(ASSESSMENT_IMPACT_QUEUE);
+  await boss.work<{ documentId: string }>(ASSESSMENT_IMPACT_QUEUE, async ([job]) => {
+    if (job) await processDocumentImpact(job.data.documentId, boss);
+  });
+  await startRegulatoryMonitor(boss);
   await boss.work<{ importItemId: string }>(VERSION_IMPORT_QUEUE, async ([job]) => {
     if (!job) return;
     await importVersionItem(job.data.importItemId);
@@ -105,6 +112,12 @@ async function run() {
         client.release();
       }
       await finishImportItem(documentId, status, null);
+      if (status === "COMPLETED" || status === "COMPLETED_WITH_WARNINGS") {
+        const type = await pool.query("SELECT document_type FROM documents WHERE id=$1", [documentId]);
+        if (["policy","procedure"].includes(type.rows[0]?.document_type)) {
+          await queueDocumentImpact(documentId, boss).catch(error => console.error("Could not queue policy impact assessment", error));
+        }
+      }
     } catch (error) {
       const unsupported = error instanceof UnsupportedDocumentError;
       if (!unsupported) console.error(`Document extraction failed for ${documentId}`, error);

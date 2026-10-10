@@ -3,18 +3,39 @@ CUSTOMER RECORDS AND INTERNAL CONTROL POLICY
 
 SYNTHETIC TEST DOCUMENT — NOT FOR OPERATIONAL USE
 
-Document version: 1.0
-Revision date: 10 October 2026
+Document version: 2.0 (synthetic assessment-test revision)
+Revision date: 11 October 2026
 Organization: Demo Bank UZ, a fictional commercial bank
 Responsible departments: Compliance and Customer Operations
 
 1. PURPOSE AND SCOPE
 
-This policy describes customer identification, customer-record retention,
-access to records, and selected internal review controls at Demo Bank UZ.
-It applies to retail accounts opened through branches and digital channels.
-It does not cover corporate customers, correspondent banking, or transaction
-monitoring procedures.
+This synthetic policy describes customer due diligence, payment services,
+anti-money-laundering and counter-terrorist/proliferation-financing controls,
+personal-data handling, record retention, and related internal governance at
+fictional Demo Bank UZ. It applies to the Bank's branches, digital channels,
+employees, contractors, and controlled service processes. It covers retail and
+legal-entity customers where the Bank provides the relevant service.
+
+For this test document, assume Demo Bank UZ is a commercial bank that provides
+bank-account and payment services, including payment orders and payment cards,
+and processes personal data. The Bank is not assumed to be a payment-system
+operator, a separately licensed payment organization, an electronic-money
+issuer, or an operator of a significant payment system. Those activities and
+their additional duties apply only after Compliance verifies formal designation,
+authorization, and actual operations. Payment-agent requirements apply only
+while the Bank has an applicable agency/subagency arrangement. Retail-merchant
+card-acceptance duties do not apply merely because the Bank serves retail
+customers. Compliance maintains an activity/applicability register and records
+the evidence supporting each role decision; uncertainty is referred for legal
+review, not treated as an exemption.
+
+This file is a synthetic demonstration artifact, not an approved or operational
+bank policy. The cited legal corpus and AI assessment are not a substitute for
+checking current official texts, implementing rules, effective dates, the
+Bank's actual license and activities, and advice from qualified Uzbekistan
+legal/compliance professionals. If this document conflicts with applicable
+law, the law controls and Compliance must escalate and document remediation.
 
 2. CUSTOMER IDENTIFICATION
 
@@ -39,9 +60,19 @@ The system records the staff account and time when a customer file is opened.
 The Compliance team reviews the access log once each calendar year. A manager
 may request an additional review after a suspected unauthorized access event.
 
-Customer-identification records are retained for three years after an account
-is closed. At the end of that period, Customer Operations may delete the
-records after receiving written approval from its department manager.
+The Bank retains transaction information, payer/beneficiary identification
+data, customer-identification and due-diligence materials, and related control
+records for at least five years after the relevant payment service/operation
+or termination of the business relationship, using the later applicable trigger
+where records fall under more than one requirement. A longer retention period
+required by applicable law, a lawful hold, an investigation, or an authorized
+instruction takes precedence. Compliance owns the retention schedule and
+documents the record category, trigger, and any longer period. Records must
+not be destroyed while a hold or investigation is active. At expiry, the
+records owner verifies that no hold or other retention duty applies, obtains
+documented approval, securely destroys or irreversibly anonymizes the records,
+and records the disposition. The former three-year account-closure rule is
+withdrawn and must not be used for records covered by this clause.
 
 4. CUSTOMER RISK REVIEW
 
@@ -50,30 +81,242 @@ customer-risk category using the customer's country of residence and expected
 account activity. A high-risk classification requires approval from a
 Compliance manager before the account is activated.
 
-This policy does not specify a schedule for repeating the customer-risk review
-after onboarding. Staff may request a review when they notice a material change
-in customer information.
+Compliance assigns each customer a documented risk level using customer,
+beneficial-owner, geography, product, channel, and expected-activity factors.
+The Bank verifies the identity and authority of customers and representatives,
+examines legal-entity ownership and control, identifies beneficial owners, and
+keeps customer and owner information current. Ongoing monitoring compares
+transactions with the customer's known profile and expected activity. Reviews
+take place at onboarding, on material changes or alerts, and at a risk-based
+periodic interval recorded in the AML procedures. Higher-risk cases receive
+enhanced review and approval by the designated Compliance officer before the
+relevant relationship or activity proceeds, where required.
+
+Compliance documents at least annually the Bank's money-laundering, terrorism-
+financing, and proliferation-financing risk assessment, resulting controls,
+owners, and remediation actions. Control intensity and resources must reflect
+the recorded risk. Material results and relevant changes are communicated to
+responsible business units and governing functions.
+
+Before onboarding and as required by the current AML procedures, the Bank
+screens customers, beneficial owners, representatives, and transaction parties
+against applicable terrorism and proliferation lists and other legally required
+lists. A potential match is escalated promptly to Compliance for resolution;
+staff must not override a match or tip off a customer. Where a legally covered
+person or property is identified, the Bank follows the applicable immediate
+restriction, suspension/freezing, permitted-crediting exception, and reporting
+requirements without prior notice where required by law. A legal hold or
+authorized instruction controls over ordinary processing.
+
+If required customer verification cannot be completed, staff must not open the
+account, start or continue the covered business relationship, or execute the
+covered operation; the case is escalated to Compliance to determine termination
+and reporting duties under the applicable rule. Operations must be refused when
+required identification documents are not provided, subject only to a verified
+legal exception (including any applicable incoming-credit exception).
+
+Employees must escalate suspicious attempted, ongoing, or completed activity
+to Compliance immediately through the restricted reporting channel. Compliance
+documents its decision and submits reports to the specially authorized state
+body within the applicable legal deadline; the current corpus identifies a
+maximum of one working day after detection for covered suspicious transactions.
+Compliance also assesses reporting duties for covered non-cooperating-state
+parties and binding decisions of the specially authorized state body. Staff
+must not disclose that a control measure, screening, or report is underway to
+the customer or an unauthorized person. AML information access is restricted
+to authorized personnel and is not disseminated except as legally permitted.
 
 5. RECORD REQUESTS
 
-When Compliance receives an internal request for a customer-identification
-record, the team should provide the record promptly. This policy does not set a
-deadline for responding to requests from external authorities or specify who
-must approve disclosure outside the bank.
+Requests from courts, the Central Bank, the specially authorized state body,
+and other public authorities are sent immediately to Legal and Compliance for
+authentication, scope, deadline, confidentiality, and lawful-disclosure review.
+The accountable owner records the request, legal basis, materials supplied,
+approvals, and response date; preserves relevant records; and meets the verified
+statutory or instruction deadline. No employee may disclose banking-secret,
+AML-control, or personal data outside the Bank without documented authorization
+and a lawful basis. This review must not delay an immediate mandatory freeze,
+suspension, or report. Staff must preserve the confidentiality of AML measures
+and prohibit tipping off.
 
 6. RESPONSIBILITIES AND EXCEPTIONS
 
-The Head of Customer Operations is responsible for staff training on this
-policy. The Compliance team owns the annual access-log review. Exceptions to
-the digital video-check procedure may be approved by a Customer Operations
-manager when the customer cannot complete the check; the manager must record
-the reason in the customer file.
+The Head of Customer Operations is responsible for operational implementation.
+The Chief Compliance Officer owns AML controls, suspicious-activity escalation,
+legal reporting, role/applicability decisions, and monitoring of remediation.
+The Data Protection Officer or designated privacy owner oversees personal-data
+controls. Information Security owns technical safeguards and incident
+coordination. Internal Audit independently tests control design and operation.
+All relevant staff receive role-based induction and recurring training;
+Compliance records completion and follows up overdue training.
+
+Exceptions are prohibited where they would bypass a legal requirement, customer
+verification, sanctions/list screening, a required payment authorization, a
+retention hold, or a mandatory reporting/freezing duty. A permitted operational
+exception requires a documented reason, risk assessment, compensating controls,
+named approver, expiry date, and Compliance review. The digital video-check
+method may be replaced only by another currently approved, sufficiently
+reliable identity-verification method; inability to complete verification
+does not itself authorize account activation.
 
 7. POLICY REVIEW
 
-The Compliance team reviews this policy every two years. The policy owner may
-also request an earlier review after a significant change to the bank's
-products or internal processes. This policy does not describe a process for
-monitoring changes in external laws or regulations.
+Compliance reviews this policy at least annually and after a relevant legal,
+regulatory, product, channel, license, outsourcing, incident, or risk change.
+Compliance monitors official regulatory sources, records relevant changes,
+assigns an accountable owner and due date, assesses affected controls and
+policies, and documents approval and implementation. Legal or Compliance
+verifies the current official text, effective date, applicability, and any
+implementing rules before treating an AI-generated alert or assessment as a
+requirement. The Bank tracks Central Bank instructions applicable to the Bank,
+assigns remediation owners and deadlines, and retains evidence of completion.
 
-END OF SYNTHETIC TEST DOCUMENT
+8. PAYMENT SERVICE CONTROLS
+
+The following controls apply when the Bank performs the relevant payment
+service or role. The payment operations owner maintains procedures and system
+controls for the Bank's actual payer-bank, beneficiary-bank, card, transfer,
+and agent roles. A role-specific legal applicability decision is recorded
+before a duty is treated as applicable or excluded.
+
+8.1 Authorization, execution, and records. A payment service is provided only
+on the user's valid payment order and under its recorded conditions and
+particulars. Staff and systems must not alter an order's terms or initiate a
+payment without the user's order, except where a verified law expressly permits
+or requires otherwise. Payment documents contain required payer and beneficiary
+details, subject to verified statutory exceptions. The value date must not be
+more than ten days after the issue date. Controls validate the order, authority,
+available information, value date, and applicable execution deadline before
+release; rejected orders are handled and explained under the applicable
+procedure. The Bank gives the user a paper or electronic confirmation of the
+payment service with required particulars.
+
+8.2 Timing, finality, errors, and charges. Payment operations monitor receipt,
+execution, settlement, and beneficiary-account credit timestamps. A payment is
+treated as final at the legally applicable event; for a payment-system
+participant this includes credit to the beneficiary participant's account.
+Where a value date falls on a non-working day, the beneficiary-bank process
+credits the beneficiary on the first following working day, where that role
+applies. An erroneous payment attributable to the Bank is investigated without
+delay and corrected by transferring funds to the recipient no later than the
+next working day after detection when the cited rule applies. Delays, refunds,
+claims, and statutory penalties are escalated to Legal/Compliance and calculated
+under the verified current rule; the relevant payment-provider provision in
+the selected corpus states 0.1 percent per day subject to a 10 percent cap.
+Users are informed of the applicable commission before service. A commission
+may not be deducted from the payment amount unless the required contract
+permits it; the beneficiary receives information on amounts received and
+deductions upon request. Tariffs and customer notices are approved, accurate,
+version-controlled, and published where the Bank's role requires publication.
+
+8.3 Agents, complaints, and continuity. Before any payment-agent or subagent
+is engaged, Legal/Compliance confirms the Bank's role and required agreement,
+registration, user disclosures, remuneration, evidence/receipt, reporting,
+and oversight controls. The Bank maintains the applicable agent/subagent
+register, checks contractual compliance, and promptly escalates incidents or
+missing agent information. The Bank remains accountable for obligations that
+law assigns jointly with its agents. Payment-service complaints and system
+incidents are logged, assigned, investigated, answered within verified
+deadlines, and analyzed for recurring consumer harm. Information security,
+cybersecurity, access control, recovery, and continuity measures protect the
+Bank's payment services. Central Bank remediation instructions are tracked to
+completion within their applicable deadlines. Requirements specific to a
+payment-system operator, a payment organization, a significant system, or a
+separately licensed service are not assumed merely from the Bank's status; if
+the role is confirmed, Compliance adds the corresponding approved controls.
+
+9. AML/CFT/PROLIFERATION-FINANCING REPORTING AND CONTROL
+
+The AML control program includes written risk-based procedures, identity and
+beneficial-owner checks, ongoing monitoring, list screening, escalation,
+reporting, recordkeeping, confidentiality, and trained accountable personnel.
+Controls cover operations prepared, attempted, ongoing, and completed where
+the relevant rule applies. Compliance keeps an auditable case record of alerts,
+analysis, decisions, reports, instructions, restrictions, and approvals, with
+access limited to authorized staff. Reports and suspicions are not disclosed
+to customers. Procedures reflect the current detailed AML rules and authorized
+state-body decisions; this summary does not replace them.
+
+10. PERSONAL DATA AND INFORMATION SECURITY
+
+The Bank processes personal data for specified, communicated purposes and
+records the applicable lawful basis for each process. Privacy notices explain
+processing purposes and subject rights when data is entered into a database,
+where required. Consent is obtained in a form that proves receipt when consent
+is the required basis. Written consent, including electronic-document form,
+is obtained for special personal data where required; the privacy owner
+verifies representative/parent/guardian/heir rules before processing such
+cases. A consent withdrawal is recorded and handled in the received form or
+another legally accepted written/electronic form; processing then stops or
+continues only on a verified alternative legal basis.
+
+Access to personal data is role-based and limited to professional duties.
+Employees and processors must preserve confidentiality and may not disclose
+or distribute personal data without consent or another verified legal basis.
+Contracts and due diligence govern third-party processors, confidentiality,
+security, permitted purposes, return/deletion, and incident notification. A
+third-party transfer is documented, reviewed for legal basis and safeguards,
+and notified to the subject in writing within the applicable period; the
+selected legal text includes a three-day notice requirement for covered
+transfers. Automated decisions receive a process explanation, consequences,
+and objection channel where required; objections are investigated and answered
+in writing within the applicable deadline, including ten days where the cited
+rule applies.
+
+The privacy owner maintains an inventory of personal-data databases and
+determines which must be registered, which exception (if any) is supported,
+and whether registration details require an update. Changes to registration
+information are notified to the authorized body within the applicable period;
+the selected text includes ten calendar days. Required personal data is stored
+within Uzbekistan where the law applies, including the stated categories of
+biometric, genetic, and telecommunications-user data. Legal, organizational,
+and technical safeguards protect confidentiality, integrity, and availability
+from collection through secure destruction or anonymization. Suspected access,
+loss, alteration, or disclosure is reported immediately to Security and
+Compliance, contained, investigated, documented, and reported to authorities
+and affected persons when current law requires.
+
+Data is corrected or supplemented on a subject request within the applicable
+deadline; inaccuracies discovered by the Bank are corrected immediately where
+required. Data is destroyed or anonymized when its documented purpose is
+achieved, a controlling consent is withdrawn, an applicable processing period
+expires, or a court decision requires it, unless a lawful retention duty or
+hold requires continued retention. The privacy owner records the legal basis
+for any continued retention, access restriction, change, or destruction and
+provides required written notices.
+
+11. PAYMENT-SERVICE RETENTION AND PRIVACY RETENTION
+
+The five-year minimum in section 3 is a floor for covered payment, AML,
+identification, and due-diligence records, not permission to retain personal
+data without purpose. The records owner maps each category to both its legal
+minimum and privacy purpose, applies any longer statutory period or lawful
+hold, then securely destroys or anonymizes data when no retention basis
+remains. Conflicts between retention and deletion duties are escalated to
+Legal/Compliance and documented; staff must not resolve them by silently
+shortening a mandatory minimum or retaining data indefinitely.
+
+12. CENTRAL BANK AND OTHER REGULATORY INTERACTIONS
+
+Central Bank rulemaking, Board governance, appointments, monetary policy,
+reserve-setting, licensing decisions, and supervisory powers belong to the
+Central Bank and are not represented as duties of this Bank. The Bank does
+cooperate with lawful supervisory requests applicable to it, protects
+confidential information, validates and logs requests, submits accurate
+required reports, and tracks binding instructions and remediation. Regulatory
+filings, licensing, ownership, agent, incident, and organizational-change
+notifications are made only when the Bank's actual role triggers them and
+within the deadline confirmed from the current official rule.
+
+13. CONTROL EVIDENCE AND TESTING
+
+Each control owner retains dated evidence of execution, exceptions, review,
+training, screening, reports, notices, payment timestamps, data-subject
+requests, agent oversight, reconciliations, and remediation. Compliance
+performs risk-based testing at least annually, records samples and results,
+assigns corrective actions, and verifies closure. Internal Audit independently
+tests material controls. Missing policy text or an automated assessment result
+is not itself proof that an operational control failed; reviewers inspect
+actual procedures and evidence before concluding.
+
+END OF SYNTHETIC TEST DOCUMENT — VERSION 2.0

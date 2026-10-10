@@ -4,14 +4,32 @@ import type { PgBoss } from "pg-boss";
 import { pool } from "../db.js";
 import { ASSESSMENT_QUEUE } from "../documents/queue.js";
 import type { ObligationInput } from "./analysis.js";
+import { CORPUS_LIMITATIONS, excludedCorpusSources, selectAssessmentCorpus } from "./corpus.js";
 
 interface StartAssessment {
   assessment_date?: string;
   policy_document_ids: string[];
-  obligations: ObligationInput[];
 }
 
 export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
+  app.post<{ Params: { id: string } }>("/api/assessments/:id/cancel", {
+    schema: { tags: ["Assessments"], summary: "Cancel a queued or processing assessment" },
+  }, async (request, reply) => {
+    const result = await pool.query(`UPDATE assessments SET status='CANCELLED',processing_stage='CANCELLED',cancelled_at=NOW(),completed_at=NOW()
+      WHERE id=$1 AND organization_id=$2 AND status IN ('QUEUED','PROCESSING') RETURNING id,job_id`, [request.params.id, request.identity!.organization_id]);
+    if (!result.rows[0]) return reply.code(409).send({ error: "Assessment is already finished or cancelled." });
+    if (result.rows[0].job_id) await boss.cancel(ASSESSMENT_QUEUE, result.rows[0].job_id);
+    return { status: "CANCELLED", assessment_id: request.params.id };
+  });
+  app.get("/api/assessment-corpus", { schema: { tags: ["Assessments"], summary: "Preview regulation snapshots used for organization-wide assessment" } }, async (request) => {
+    const documents = await selectAssessmentCorpus(request.identity!.organization_id);
+    const cached = await pool.query(`SELECT COUNT(*)::int AS snapshots,COALESCE(SUM(jsonb_array_length(obligations)),0)::int AS obligations FROM
+      (SELECT DISTINCT ON (document_id) document_id,obligations FROM regulatory_obligation_cache
+       WHERE document_id=ANY($1::uuid[]) AND extractor_version LIKE 'obligations-v3:%' ORDER BY document_id,extracted_at DESC) c`, [documents.map(d=>d.id)]);
+    return { documents, excluded_sources: await excludedCorpusSources(request.identity!.organization_id, documents), limitations: CORPUS_LIMITATIONS,
+      cached_snapshots: cached.rows[0].snapshots, cached_obligations: cached.rows[0].obligations,
+      comparison_model: process.env.OPENAI_MODEL ?? "gpt-6-luna", batch_size: Number(process.env.ASSESSMENT_BATCH_SIZE ?? 8), budget_usd: Number(process.env.ASSESSMENT_MAX_COST_USD ?? 2) };
+  });
   app.get("/api/reviews", { schema: { tags: ["Assessments"], summary: "List reviewer decisions in your workspace" } }, async (request) => {
     const result = await pool.query(`SELECT finding_reviews.id, finding_reviews.decision, finding_reviews.reviewer_identifier,
       finding_reviews.comment, finding_reviews.created_at, findings.obligation_id, findings.assessment_id
@@ -37,25 +55,14 @@ export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
   });
   app.post<{ Body: StartAssessment }>("/api/assessments", {
     schema: {
-      tags: ["Assessments"], summary: "Start a synthetic-data policy assessment",
-      description: "Obligations are supplied by the caller and are not verified legal advice. AI findings require human review. Requires OPENAI_API_KEY on the worker.",
+      tags: ["Assessments"], summary: "Assess policies against the imported regulatory corpus",
+      description: "The server pins current observed or source-reviewed regulation snapshots, extracts draft obligations, and compares policies. No prompt is required. Effective dates remain unverified; findings require human review.",
       body: {
         type: "object", additionalProperties: false,
-        required: ["policy_document_ids", "obligations"],
+        required: ["policy_document_ids"],
         properties: {
           assessment_date: { type: "string", format: "date" },
           policy_document_ids: { type: "array", minItems: 1, maxItems: 5, uniqueItems: true, items: { type: "string", format: "uuid" } },
-          obligations: {
-            type: "array", minItems: 1, maxItems: 20,
-            items: {
-              type: "object", additionalProperties: false, required: ["id", "citation", "requirement"],
-              properties: {
-                id: { type: "string", minLength: 1, maxLength: 100 },
-                citation: { type: "string", minLength: 1, maxLength: 500 },
-                requirement: { type: "string", minLength: 10, maxLength: 4000 },
-              },
-            },
-          },
         },
       },
       response: {
@@ -65,18 +72,33 @@ export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
       },
     },
   }, async (request, reply) => {
-    const ids = new Set(request.body.obligations.map((item) => item.id));
-    if (ids.size !== request.body.obligations.length) return reply.code(400).send({ error: "Obligation IDs must be unique." });
+    const active = await pool.query("SELECT id FROM assessments WHERE organization_id=$1 AND status IN ('QUEUED','PROCESSING') LIMIT 1", [request.identity!.organization_id]);
+    if (active.rows[0]) return reply.code(409).send({ error: "An assessment is already queued or processing. Cancel it or wait before starting another." });
     if (!process.env.OPENAI_API_KEY) return reply.code(503).send({ error: "AI assessment is unavailable: OPENAI_API_KEY is not configured on the API server." });
+    const policies = await pool.query("SELECT id, document_group_id, filename, content_hash, version_label, processing_status FROM documents WHERE id = ANY($1::uuid[]) AND organization_id = $2", [request.body.policy_document_ids, request.identity!.organization_id]);
+    if (policies.rows.some((document) => !["COMPLETED", "COMPLETED_WITH_WARNINGS"].includes(document.processing_status))) return reply.code(409).send({ error: "Wait for policy extraction to finish before assessing." });
+    const corpus = await selectAssessmentCorpus(request.identity!.organization_id);
+    if (!corpus.length) return reply.code(409).send({ error: "No current regulatory snapshots are ready. Import and extract official regulation documents first." });
+    const excluded = await excludedCorpusSources(request.identity!.organization_id, corpus);
+    const baseline = await pool.query(`SELECT id FROM assessments WHERE organization_id=$1 AND status='COMPLETED'
+      ORDER BY created_at DESC LIMIT 1`, [request.identity!.organization_id]);
     const id = randomUUID();
     const assessmentDate = request.body.assessment_date ?? new Date().toISOString().slice(0, 10);
     const created = await pool.query(
-      `INSERT INTO assessments (id, status, assessment_date, policy_document_ids, obligations, organization_id)
-       VALUES ($1, 'QUEUED', $2, $3::uuid[], $4::jsonb, $5) RETURNING created_at`,
-      [id, assessmentDate, request.body.policy_document_ids, JSON.stringify(request.body.obligations), request.identity!.organization_id],
-    );
+      `INSERT INTO assessments (id, status, assessment_date, policy_document_ids, obligations, organization_id,
+        corpus_document_ids, organization_profile, input_snapshots, pipeline_version, coverage_warnings, baseline_assessment_id, comparison_model)
+       VALUES ($1, 'QUEUED', $2, $3::uuid[], '[]'::jsonb, $4, $5::uuid[], $6::jsonb, $7::jsonb, 'incremental-v2', $8::jsonb, $9, $10) RETURNING created_at`,
+      [id, assessmentDate, request.body.policy_document_ids, request.identity!.organization_id,
+        corpus.map((document) => document.id), JSON.stringify({ organization_type: request.identity!.organization_type, activities: request.identity!.activities, assessment_date: assessmentDate }),
+        JSON.stringify([...policies.rows.map((document) => ({ ...document, kind: "policy" })), ...corpus.map((document) => ({ ...document, kind: "regulation" }))]),
+        JSON.stringify(excluded.map((group) => `Excluded source (no complete eligible snapshot with legal provisions; language placeholders must be replaced with the original text): ${group.title}`)),
+        baseline.rows[0]?.id ?? null, process.env.OPENAI_MODEL ?? "gpt-6-luna"],
+    ).catch((error: unknown) => { if ((error as { code?: string }).code === "23505") return null; throw error; });
+    if (!created) return reply.code(409).send({ error: "An assessment is already queued or processing." });
     try {
-      await boss.send(ASSESSMENT_QUEUE, { assessmentId: id });
+      const job = await boss.send(ASSESSMENT_QUEUE, { assessmentId: id }, { retryLimit: 0, expireInSeconds: 7200 });
+      if (!job) throw new Error("Queue did not accept the assessment.");
+      await pool.query("UPDATE assessments SET job_id=$2 WHERE id=$1", [id, job]);
     } catch {
       await pool.query("UPDATE assessments SET status = 'FAILED', error_message = 'Could not enqueue assessment.' WHERE id = $1", [id]);
       return reply.code(503).send({ error: "Assessment could not be queued. Please retry." });
@@ -89,16 +111,32 @@ export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
   }, async (request, reply) => {
     const { rows } = await pool.query(
       `SELECT id, status, assessment_date, policy_document_ids, obligations,
-              model_identifier, error_message, created_at, started_at, completed_at
+               model_identifier, error_message, created_at, started_at, completed_at,
+               corpus_document_ids, organization_profile, input_snapshots, processing_stage, progress, pipeline_version, coverage_warnings,
+               baseline_assessment_id,comparison_model,cancelled_at,change_summary
        FROM assessments WHERE id = $1`, [request.params.id],
     );
     if (!rows[0]) return reply.code(404).send({ error: "Assessment not found." });
     const findings = await pool.query(
-      `SELECT id, obligation_id, classification, applicability, explanation, proposed_action,
+      `SELECT id, title, obligation_id, classification, applicability, explanation, proposed_action,change_status,reused_from_finding_id,
               limitations, evidence, review_status, created_at
        FROM findings WHERE assessment_id = $1 ORDER BY created_at, obligation_id`, [request.params.id],
     );
-    return { assessment: rows[0], findings: findings.rows };
+    const usage = await pool.query(`SELECT COUNT(*)::int AS requests,COALESCE(SUM(input_tokens),0)::int AS input_tokens,
+      COALESCE(SUM(output_tokens),0)::int AS output_tokens,SUM(estimated_cost_usd)::float AS estimated_cost_usd,
+      COUNT(*) FILTER (WHERE estimated_cost_usd IS NULL)::int AS unpriced_requests FROM assessment_ai_usage WHERE assessment_id=$1`, [request.params.id]);
+    return { assessment: rows[0], findings: findings.rows, usage: usage.rows[0], budget_usd: Number(process.env.ASSESSMENT_MAX_COST_USD ?? 2), limitations: [...CORPUS_LIMITATIONS, ...rows[0].coverage_warnings] };
+  });
+
+  app.get<{ Params: { id: string } }>("/api/findings/:id", {
+    schema: { tags: ["Assessments"], summary: "Get finding with regulatory and policy evidence", params: { type: "object", required: ["id"], properties: { id: { type: "string", format: "uuid" } } } },
+  }, async (request, reply) => {
+    const result = await pool.query(`SELECT findings.*, assessments.obligations, assessments.status AS assessment_status
+      FROM findings JOIN assessments ON assessments.id = findings.assessment_id WHERE findings.id = $1 AND assessments.organization_id = $2`, [request.params.id, request.identity!.organization_id]);
+    if (!result.rows[0]) return reply.code(404).send({ error: "Finding not found." });
+    const { obligations, ...finding } = result.rows[0];
+    const reviews = await pool.query("SELECT decision, reviewer_identifier, comment, created_at FROM finding_reviews WHERE finding_id = $1 ORDER BY created_at DESC", [finding.id]);
+    return { finding, obligation: (obligations as ObligationInput[]).find((obligation) => obligation.id === finding.obligation_id) ?? null, reviews: reviews.rows };
   });
 
   app.post<{ Params: { id: string }; Body: { decision: "CONFIRMED" | "REJECTED" | "NEEDS_EVIDENCE"; reviewer_identifier?: string; comment?: string } }>("/api/findings/:id/review", {

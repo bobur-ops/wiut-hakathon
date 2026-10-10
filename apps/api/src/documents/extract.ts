@@ -155,8 +155,13 @@ export async function extractDocument(
       if (sectionType === "ARTICLE") currentArticleIndex = sectionIndex;
     });
 
-    if (sections.length === 0) {
-      throw new UnsupportedDocumentError("No legal text was found in the Lex.uz page.");
+    if (!sections.some((section) => ["CHAPTER", "ARTICLE", "PARAGRAPH", "PAGE"].includes(section.sectionType))) {
+      const originalPath = legalBody.find(".COMMENT_FOR_WARNING a[href]").first().attr("href");
+      const originalUrl = originalPath && /^\/docs\/\d+$/.test(originalPath)
+        ? `https://lex.uz${originalPath}` : null;
+      throw new UnsupportedDocumentError(originalUrl
+        ? `This Lex.uz language page contains no legal provisions. Import the original-language text instead: ${originalUrl}`
+        : "No substantive legal text was found in the Lex.uz page (a title or signature alone is insufficient).");
     }
 
     return {

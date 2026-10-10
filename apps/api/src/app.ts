@@ -6,6 +6,7 @@ import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { installAccessControl } from "./auth/access.js";
 import { registerAuthRoutes } from "./auth/routes.js";
+import { registerMonitoringRoutes } from "./monitoring/routes.js";
 import type { PgBoss } from "pg-boss";
 import { registerDocumentRoutes } from "./documents/routes.js";
 import { registerRetrievalRoutes } from "./retrieval/routes.js";
@@ -14,12 +15,15 @@ import { registerAssessmentRoutes } from "./assessments/routes.js";
 export function buildApp(boss: PgBoss) {
   const app = Fastify({
     logger: true,
+    ajv: { customOptions: { removeAdditional: false } },
   });
 
   app.register(cors, {
     origin: (process.env.CORS_ORIGINS ?? "http://localhost:5173,http://127.0.0.1:5173").split(","),
   });
-  app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+  if (process.env.RATE_LIMIT_ENABLED === "true") {
+    app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
+  }
   app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } });
   app.register(swagger, {
     openapi: {
@@ -71,6 +75,7 @@ export function buildApp(boss: PgBoss) {
     registerDocumentRoutes(api, boss);
     registerRetrievalRoutes(api);
     registerAssessmentRoutes(api, boss);
+    registerMonitoringRoutes(api, boss);
   });
 
   return app;

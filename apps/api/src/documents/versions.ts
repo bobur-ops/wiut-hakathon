@@ -50,6 +50,8 @@ export async function allocateVersion(client: PoolClient, input: VersionInput) {
   const lexKey = lexSourceKey(input.sourceUrl, input.documentType);
   const sourceKey = lexKey && input.organizationId ? `org:${input.organizationId}:${lexKey}` : lexKey;
   let groupId = input.documentGroupId;
+  const alias = sourceKey ? await client.query("SELECT document_group_id FROM document_group_source_aliases WHERE source_key = $1", [sourceKey]) : null;
+  if (!groupId && alias?.rows[0]) groupId = alias.rows[0].document_group_id;
   if (!groupId) {
     const result = await client.query(
        `INSERT INTO document_groups (id, source_key, title, document_type, organization_id)
@@ -68,7 +70,7 @@ export async function allocateVersion(client: PoolClient, input: VersionInput) {
   if (group.rows[0].document_type !== input.documentType) {
     throw new DocumentVersionError("The version must have the same document type as its document group.");
   }
-  if (sourceKey && group.rows[0].source_key !== sourceKey) {
+  if (sourceKey && group.rows[0].source_key !== sourceKey && alias?.rows[0]?.document_group_id !== groupId) {
     throw new DocumentVersionError("The Lex.uz URL does not belong to this document group.");
   }
   if (!sourceKey && /(^|:)lex:/.test(String(group.rows[0].source_key))) {

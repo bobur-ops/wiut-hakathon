@@ -67,10 +67,10 @@ async function canAccessRequest(request: FastifyRequest) {
   if ((path === "/api/policy-evidence/search" || path === "/api/assessments") && request.method === "POST" && body) {
     return accessibleDocuments(body.policy_document_ids as string[], org, true);
   }
-  if (/^\/api\/assessments\/[^/]+$/.test(path) && params.id) {
+  if (/^\/api\/assessments\/[^/]+(?:\/cancel)?$/.test(path) && params.id) {
     return Boolean((await pool.query("SELECT 1 FROM assessments WHERE id = $1 AND organization_id = $2", [params.id, org])).rowCount);
   }
-  if (/^\/api\/findings\/[^/]+\/(review|reviews)$/.test(path) && params.id) {
+  if (/^\/api\/findings\/[^/]+(?:\/(review|reviews))?$/.test(path) && params.id) {
     return Boolean((await pool.query(`SELECT 1 FROM findings JOIN assessments ON assessments.id = findings.assessment_id
       WHERE findings.id = $1 AND assessments.organization_id = $2`, [params.id, org])).rowCount);
   }

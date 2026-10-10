@@ -74,3 +74,21 @@ test("single-page TXT retains paragraph references", async () => {
   const result = await extractDocument(Buffer.from("First\n\nSecond"), "text/plain");
   assert.deepEqual(result.sections.map((section) => section.sourceReference), ["paragraph:1", "paragraph:2"]);
 });
+
+test("Lex.uz language placeholders are not accepted as complete legal text", async () => {
+  const html = `<html><div id="divCont">
+    <div class="ACT_TITLE"><div name="title">Non-cash settlements</div></div>
+    <div class="COMMENT_FOR_WARNING"><div>Текст акта приводится на <a href="/docs/4790646">узбекском языке</a>.</div></div>
+    <div class="SIGNATURE"><div name="signature">Chairperson</div></div>
+  </div></html>`;
+  await assert.rejects(extractDocument(Buffer.from(html), "text/html"), /Import the original-language text instead: https:\/\/lex.uz\/docs\/4790646/);
+});
+
+test("Lex.uz original-language clauses retain text and exact source references", async () => {
+  const html = `<html><div id="divCont"><div class="ACT_TITLE"><div name="title">Title</div></div>
+    <div class="ACT_TEXT"><div name="clause-1">Банк ҳужжатларни сақлаши шарт.</div></div></div></html>`;
+  const result = await extractDocument(Buffer.from(html), "text/html");
+  assert.equal(result.sections[1]?.sectionType, "PARAGRAPH");
+  assert.equal(result.sections[1]?.sourceReference, "lex-element:clause-1");
+  assert.equal(result.sections[1]?.content, "Банк ҳужжатларни сақлаши шарт.");
+});
