@@ -22,7 +22,7 @@ export default function AuthScreen({ onSignedIn }: { onSignedIn: (identity: Iden
     finally { setBusy(false); }
   }
   return <div className="auth-page">
-    <section className="auth-story"><a className="brand" href="#"><span className="brand-mark">R</span> REGCHECK <b>UZ</b></a>
+    <section className="auth-story"><a className="brand" href="#"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 23V9l16 14V9" /></svg></span><span className="brand-name">normiq</span></a>
       <div><span className="eyebrow">REGULATORY INTELLIGENCE WORKSPACE</span><h1>Keep policy<br />and regulation<br /><em>connected.</em></h1><p>A dedicated workspace for your compliance team. Evidence-backed assessments, accountable review, and a structured regulatory library.</p></div>
       <small>Hackathon prototype · Synthetic organization data only</small>
     </section>

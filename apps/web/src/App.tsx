@@ -133,7 +133,7 @@ function OrganizationWorkspace({ identity, onIdentity, onSignedOut }: { identity
   return <div className="workspace-shell">
     {contextHolder}
     <aside className="workspace-sidebar">
-      <Link className="brand" to="/dashboard"><span className="brand-mark">R</span> REGCHECK <b>UZ</b></Link>
+      <Link className="brand" to="/dashboard"><span className="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M8 23V9l16 14V9" /></svg></span><span className="brand-name">normiq</span></Link>
       <div className="organization-badge"><span className="org-avatar">{identity.name.slice(0, 2).toUpperCase()}</span><div><strong>{identity.name}</strong><small>{format(identity.organization_type)}</small></div></div>
       <span className="nav-caption">WORKSPACE</span>
       <nav aria-label="Workspace navigation">{navigation.map((item) => <NavLink key={item.key} to={pagePath(item.key)} className={() => page === item.key ? "nav-item active" : "nav-item"}><span aria-hidden>{item.icon}</span>{item.label}{item.key === "assessments" && pending > 0 && <b>{pending}</b>}</NavLink>)}</nav>
@@ -181,7 +181,7 @@ function OrganizationWorkspace({ identity, onIdentity, onSignedOut }: { identity
         <Route path="*" element={<Card><Empty description="This page does not exist" /><Button onClick={() => navigateTo("dashboard")}>Go to overview</Button></Card>} />
         </Routes>
       </main>
-      <footer className="workspace-footer">RegCheck UZ · Recommendations, not legal certification</footer>
+      <footer className="workspace-footer">Normiq · Recommendations, not legal certification</footer>
     </div>
     <Drawer width={720} title={drawer?.title} open={Boolean(drawer)} onClose={() => setDrawer(null)}>
       {drawer?.versions && <Table<DocumentRecord> rowKey="id" dataSource={drawer.versions} pagination={{ pageSize: 10 }} columns={[{ title: "Version", dataIndex: "version_label" }, { title: "Status", dataIndex: "processing_status" }, { title: "", render: (_, record) => <Button onClick={() => void inspectDocument(record)}>View text</Button> }]} />}

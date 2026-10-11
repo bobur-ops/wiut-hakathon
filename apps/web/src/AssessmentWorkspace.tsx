@@ -5,8 +5,7 @@ import { api, jsonBody } from "./api";
 import { findingLabels, type AssessmentPayload, type Finding } from "./assessment-types";
 
 interface Policy { id: string; filename: string; version_label: string | null; document_group_id: string; processing_status: string }
-interface Corpus { documents: { id: string; title: string; version_label: string | null; source_reviewed: boolean }[]; excluded_sources?: { id: string; title: string }[]; limitations: string[];
-  cached_snapshots?: number; cached_obligations?: number; comparison_model?: string; batch_size?: number; budget_usd?: number }
+interface Corpus { documents: { id: string; title: string; version_label: string | null; source_reviewed: boolean }[]; excluded_sources?: { id: string; title: string }[]; limitations: string[] }
 
 export default function AssessmentWorkspace() {
   const { id } = useParams();
@@ -83,7 +82,6 @@ export default function AssessmentWorkspace() {
     {selectedRegulations.length > 0 && corpus && selectedRegulations.length < corpus.documents.length && <Alert type="warning" showIcon message="Focused assessment — partial regulatory coverage" description={`${corpus.documents.length - selectedRegulations.length} eligible regulation snapshot(s) are excluded. Findings apply only to selected sources.`} />}
     <Alert type="warning" showIcon message="AI-extracted requirements need legal review" description="The first run can take several minutes while the selected corpus is processed. Later runs reuse cached obligations. This does not guarantee every duty was identified or establish legal compliance." />
     {!!corpus?.excluded_sources?.length && <Alert type="warning" showIcon message={`${corpus.excluded_sources.length} regulatory sources are not ready for assessment`} description={corpus.excluded_sources.map((source) => source.title).join("; ")} />}
-    <Alert type="info" showIcon message="Batched, incremental assessment" description={`${corpus?.comparison_model ?? "Configured model"} · up to ${corpus?.batch_size ?? 8} requirements per comparison request · ${corpus?.cached_snapshots ?? 0} snapshots / ${corpus?.cached_obligations ?? 0} draft requirements cached · $${corpus?.budget_usd ?? 2} budget guard. Unchanged findings are reused; reported token usage and estimated spend appear during processing.`} />
     <Button type="primary" size="large" loading={starting} disabled={!selected.length || !selectedRegulations.length} onClick={() => void start()}>Assess {selected.length} {selected.length === 1 ? "policy" : "policies"} against {selectedRegulations.length} regulations</Button>
   </Card>;
   if (!result) return <Alert type="error" showIcon message={error || "Assessment could not be loaded"} />;
@@ -93,14 +91,12 @@ export default function AssessmentWorkspace() {
   const total = assessment.processing_stage === "EXTRACTING_OBLIGATIONS" ? progress.regulations_total : progress.obligations_total;
   const done = assessment.processing_stage === "EXTRACTING_OBLIGATIONS" ? progress.regulations_completed : progress.obligations_completed;
   return <>
-    <div className="assessment-result-toolbar"><Link to="/assessments">← All assessments</Link><Space><Tag color={assessment.status === "FAILED" ? "red" : assessment.status === "CANCELLED" ? "default" : running ? "blue" : "green"}>{assessment.status}</Tag>{running && <Popconfirm title="Cancel this assessment?" description="Saved findings are preserved. In-flight requests may already be billed." onConfirm={async () => {
+    <div className="assessment-result-toolbar"><Link to="/assessments">← All assessments</Link><Space><Tag color={assessment.status === "FAILED" ? "red" : assessment.status === "CANCELLED" ? "default" : running ? "blue" : "green"}>{assessment.status}</Tag>{running && <Popconfirm title="Cancel this assessment?" description="Saved findings are preserved." onConfirm={async () => {
       try { await api(`/api/assessments/${id}/cancel`, jsonBody({})); setResult(await api<AssessmentPayload>(`/api/assessments/${id}`)); }
       catch (reason) { setError(reason instanceof Error ? reason.message : "Could not cancel"); }
     }}><Button danger>Cancel assessment</Button></Popconfirm>}</Space></div>
     {assessment.status === "CANCELLED" && <Alert type="info" showIcon message="Assessment cancelled" description="Partial findings are preserved and are not complete coverage." />}
     {assessment.baseline_assessment_id && assessment.status === "COMPLETED" && <Alert type="info" message="Incremental assessment" description={`${assessment.change_summary?.new ?? 0} new · ${assessment.change_summary?.changed ?? 0} changed · ${assessment.change_summary?.resolved ?? 0} resolved documentary gaps · ${assessment.change_summary?.unchanged ?? 0} reused. ${assessment.change_summary?.removed_from_scope ?? 0} earlier findings are no longer in this run's scope; removal does not establish legal resolution.`} />}
-    {running && progress.estimated_comparison_cost_usd != null && <Alert type="info" message={`Rough comparison estimate: $${progress.estimated_comparison_cost_usd.toFixed(4)}`} description="Based on prepared input size and an assumed 300 output tokens per requirement. Excludes retries and uncached regulatory extraction; actual cost may differ." />}
-    <Card size="small"><Space wrap><Tag>{assessment.comparison_model ?? "Configured model"}</Tag><span>{result.usage?.requests ?? 0} API attempts</span><span>Estimated API cost: {result.usage?.estimated_cost_usd == null ? "not available yet" : `$${result.usage.estimated_cost_usd.toFixed(4)}`}</span><span>Budget guard: ${result.budget_usd ?? 2}</span><span>{progress.reused_findings ?? 0} findings reused</span>{progress.comparison_batches_total != null && <span>{progress.comparison_batches_completed ?? 0}/{progress.comparison_batches_total} comparison batches</span>}</Space><Typography.Paragraph type="secondary">Cost is estimated from reported tokens, not an invoice. Unreported requests and in-flight calls may add charges. Budget enforcement is a guard, not a provider-side spending cap.</Typography.Paragraph></Card>
     {error && <Alert type="error" message={error} />}
     {assessment.status === "FAILED" && <Alert type="error" showIcon message="Assessment incomplete — do not treat partial findings as complete coverage" description={assessment.error_message} />}
     {!!assessment.coverage_warnings?.length && <Alert type="warning" showIcon message="Regulatory coverage gaps" description={<ul>{assessment.coverage_warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>} />}
@@ -118,6 +114,6 @@ export default function AssessmentWorkspace() {
         { title: "", width: 90, render: (_, finding) => <Link to={`/findings/${finding.id}`}>Inspect →</Link> },
       ]} />
     </Card>
-    <Collapse items={[{ key: "coverage", label: "Coverage, limitations and assessment record", children: <><p>Pipeline: {assessment.pipeline_version} · Model: {assessment.model_identifier ?? "processing"} · ID: {assessment.id}</p><ul>{result.limitations?.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></> }]} />
+    <Collapse items={[{ key: "coverage", label: "Coverage, limitations and assessment record", children: <><p>Assessment ID: {assessment.id}</p><ul>{result.limitations?.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul></> }]} />
   </>;
 }

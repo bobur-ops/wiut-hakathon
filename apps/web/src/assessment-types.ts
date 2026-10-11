@@ -16,19 +16,16 @@ export interface Finding {
 export interface AssessmentPayload {
   assessment: {
     id: string; status: string; processing_stage: string; error_message: string | null;
-    obligations: Obligation[]; model_identifier: string | null; pipeline_version: string;
+    obligations: Obligation[];
     corpus_document_ids: string[];
     coverage_warnings?: string[];
-    comparison_model?: string; baseline_assessment_id?: string | null;
+    baseline_assessment_id?: string | null;
     change_summary?: { new?: number; changed?: number; resolved?: number; unchanged?: number; removed_from_scope?: number };
     progress: { regulations_completed?: number; regulations_failed?: number; regulations_total?: number; current_regulation?: string;
-      batches_completed?: number; batches_total?: number; obligations_completed?: number; obligations_total?: number;
-      reused_findings?: number; comparison_batches_completed?: number; comparison_batches_total?: number; estimated_comparison_cost_usd?: number | null };
+      batches_completed?: number; batches_total?: number; obligations_completed?: number; obligations_total?: number };
   };
   findings: Finding[];
   limitations: string[];
-  usage?: { requests: number; input_tokens: number; output_tokens: number; estimated_cost_usd: number | null; unpriced_requests: number };
-  budget_usd?: number;
 }
 export const findingLabels: Record<string, { label: string; color: string; priority: number }> = {
   POTENTIAL_CONFLICT: { label: "Potential conflict", color: "red", priority: 0 },
