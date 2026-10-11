@@ -2,6 +2,8 @@
 
 **Jury setup and testing:** see [JURY_GUIDE.md](JURY_GUIDE.md) for installation, environment configuration, the single-policy V1/V2 demo, automated tests, and manual acceptance checks.
 
+**Demo policies:** [Download V1 and V2 from Google Drive](https://drive.google.com/drive/folders/1MXiV6sY8Je1iPH5_GB7hkz3NQ-Z7EFfa?usp=sharing). Assess V1 first, then upload V2 in **update mode on the existing policy**, not as a separate policy. These are fictional testing documents, not real legal policies.
+
 Starter monorepo for the RegCheck UZ frontend and backend. Document ingestion is
 implemented alongside lexical policy evidence retrieval, an MVP async assessment/review API, and an authenticated organization application shell.
 

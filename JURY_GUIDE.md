@@ -121,6 +121,16 @@ Use the same hostname consistently in the browser: `localhost` and `127.0.0.1` a
 
 ## 6. Focused, single-policy demo
 
+### Note for jurors: download the demo policies
+
+Download the fictional V1 and corrected V2 policy files from this shared folder:
+
+**[Demo policy files on Google Drive](https://drive.google.com/drive/folders/1MXiV6sY8Je1iPH5_GB7hkz3NQ-Z7EFfa?usp=sharing)**
+
+Upload **V1 first** and complete its initial assessment. Then select **update/new-version mode on that existing policy** before uploading V2; do not upload V2 as a separate new policy. Compare the two assessments to see how the corrected wording affects findings. The files deliberately illustrate policy conflicts and remediation and must not be used as real operational or legal policies. Copies are also available in this repository at the paths listed below.
+
+If Drive requests permission, ask the project team for access or use the repository copies. The project team should verify that the shared folder is readable by jurors before submission.
+
 ### Prepare the regulatory corpus
 
 Use only these two laws for a smaller demonstration:
