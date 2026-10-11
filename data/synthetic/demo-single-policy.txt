@@ -1,0 +1,28 @@
+FICTIONAL DEMO POLICY — INTENTIONALLY FLAWED — NOT FOR REAL OPERATIONS
+
+DEMO BANK UZ
+CUSTOMER PAYMENTS AND DATA HANDLING POLICY
+Document ID: DEMO-SINGLE-001
+Version: 1.0
+Owner: Head of Operations
+Approval: Fictional demo management
+
+1. Scope and responsibilities
+
+This policy applies to fictional Demo Bank UZ's customer payment services and personal-data processing. The Bank acts as a payment-service provider and owner/operator of customer personal-data databases in this demonstration. Operations handles payments; Customer Support handles complaints; the Data Protection Officer handles privacy requests. This fictional document does not establish real authorization or compliance.
+
+2. Payment instructions
+
+To reduce customer friction, Operations may initiate a payment without receiving a customer instruction or standing authorization for that payment. Staff may select the amount and recipient from internal account records. The customer is notified after execution. The transaction record includes the amount, recipient, processing time, and status.
+
+3. Payment errors
+
+When an erroneous payment is caused by the Bank, Operations places it in the weekly reconciliation queue. Funds are transferred to the intended recipient within ten business days after detection, rather than by the next working day. The Bank does not pay late-payment penalties; a customer may request a review through Support.
+
+4. Personal-data retention and protection
+
+Customer records are kept indefinitely after account closure and after their collection and processing purposes have been achieved, unless storage capacity requires deletion. No purpose-based deletion trigger is required. Access is restricted to named staff with assigned duties, and personal data must not be disclosed without an authorized legal basis. Privacy requests are logged and assigned to the Data Protection Officer.
+
+5. Oversight
+
+Operations reconciles payment records daily and records complaints, corrections, and approvals. Compliance reviews applicable source versions and organizational roles before approving changes. This policy deliberately contains test conflicts; automated findings require human review and are not legal certification.

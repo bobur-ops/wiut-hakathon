@@ -1,5 +1,7 @@
 # RegCheck UZ
 
+**Jury setup and testing:** see [JURY_GUIDE.md](JURY_GUIDE.md) for installation, environment configuration, the single-policy V1/V2 demo, automated tests, and manual acceptance checks.
+
 Starter monorepo for the RegCheck UZ frontend and backend. Document ingestion is
 implemented alongside lexical policy evidence retrieval, an MVP async assessment/review API, and an authenticated organization application shell.
 

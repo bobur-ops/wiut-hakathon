@@ -1,0 +1,28 @@
+FICTIONAL DEMO POLICY — CORRECTED DRAFT — NOT FOR REAL OPERATIONS
+
+DEMO BANK UZ
+CUSTOMER PAYMENTS AND DATA HANDLING POLICY
+Document ID: DEMO-SINGLE-001
+Version: 2.0
+Owner: Head of Operations
+Approval: Fictional demo management
+
+1. Scope and responsibilities
+
+This policy applies to fictional Demo Bank UZ's customer payment services and personal-data processing. The Bank acts as a payment-service provider and owner/operator of customer personal-data databases in this demonstration. Operations handles payments; Customer Support handles complaints; the Data Protection Officer handles privacy requests. This fictional document does not establish real authorization or compliance.
+
+2. Payment instructions
+
+The Bank must not initiate a payment without receiving the payment-service user's instruction and verifying the required authorization. Operations validates the amount, recipient, and other conditions before execution and provides the service only on the conditions specified in that instruction. Invalid instructions are refused and the reason recorded. The user receives a paper or electronic confirmation after the service.
+
+3. Payment errors
+
+When an erroneous payment is caused by the Bank, Operations transfers funds to the intended recipient no later than the working day following detection and records detection and correction times. An investigation must not delay that correction. If the deadline is missed, the payer may seek return and the applicable penalty under the verified source rule: 0.1% of the erroneous payment for each day of delay, capped at 10%. Finance and Compliance handle the remedy and retain evidence. For missed payment deadlines, the Bank pays the payer the applicable 0.1% daily penalty, capped at 10%, under the verified rule.
+
+4. Personal-data retention and protection
+
+Each data category has an approved retention period or trigger tied to achievement of its collection and processing purposes. The system owner deletes or irreversibly de-identifies data when the purpose is achieved, unless a documented applicable legal hold or mandatory retention duty requires continued storage. Exceptions identify the basis, owner, review date, and expiry. Indefinite retention for convenience is prohibited. Access is restricted to named staff with assigned duties, and personal data must not be disclosed without an authorized legal basis. Privacy requests are logged and assigned to the Data Protection Officer.
+
+5. Oversight
+
+Operations reconciles payment records daily and records complaints, corrections, and approvals. Compliance reviews applicable source versions and organizational roles before approving changes. These corrected controls are fictional drafts; automated findings require human review and are not legal certification.
