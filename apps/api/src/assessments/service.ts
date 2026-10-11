@@ -1,7 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import type { Pool } from "pg";
 import { pool } from "../db.js";
-import { compareWithOpenAI, compareBatchWithOpenAI, validateAnalysis, type AnalysisResult, type ComparisonInput, type CompareFunction, type ObligationInput } from "./analysis.js";
+import { COMPARISON_PROMPT_VERSION, compareWithOpenAI, compareBatchWithOpenAI, validateAnalysis, type AnalysisResult, type ComparisonInput, type CompareFunction, type ObligationInput } from "./analysis.js";
 import { AssessmentCancelled, estimateCost, withAIContext } from "./openai.js";
 import { searchPolicyEvidence, type EvidencePassage } from "../retrieval/search.js";
 import { extractRegulatoryObligations } from "./extraction.js";
@@ -36,7 +36,7 @@ export function createAssessmentProcessor(options: {
     const check = async () => { await options.check?.(assessmentId); };
     const model = assessment.comparison_model ?? options.model;
     const run = async () => { try {
-      const documents = assessment.input_snapshots.filter((snapshot) => snapshot.kind === "regulation");
+       const documents = assessment.input_snapshots.filter((snapshot) => ["regulation","legislation"].includes(snapshot.kind));
       const failedSources: string[] = [];
       let processedSources = 0;
       if (assessment.corpus_document_ids.length) {
@@ -178,7 +178,7 @@ export function createAssessmentProcessor(options: {
 }
 
 export function comparisonKey(obligation: ObligationInput, policies: unknown, profile: { organization_type: string; activities: string[] }, model: string) {
-  return createHash("sha256").update(JSON.stringify(["comparison-v2", model, obligation.requirement,
+  return createHash("sha256").update(JSON.stringify([COMPARISON_PROMPT_VERSION, model, obligation.requirement,
     obligation.regulation_evidence?.map(e => [e.source_reference, e.excerpt]), policies,
     profile.organization_type, [...profile.activities].sort()])).digest("hex");
 }

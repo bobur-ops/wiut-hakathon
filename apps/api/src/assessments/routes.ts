@@ -4,11 +4,12 @@ import type { PgBoss } from "pg-boss";
 import { pool } from "../db.js";
 import { ASSESSMENT_QUEUE } from "../documents/queue.js";
 import type { ObligationInput } from "./analysis.js";
-import { CORPUS_LIMITATIONS, excludedCorpusSources, selectAssessmentCorpus } from "./corpus.js";
+import { CORPUS_LIMITATIONS, excludedCorpusSources, scopeAssessmentCorpus, selectAssessmentCorpus } from "./corpus.js";
 
 interface StartAssessment {
   assessment_date?: string;
   policy_document_ids: string[];
+  regulation_document_ids?: string[];
 }
 
 export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
@@ -21,7 +22,7 @@ export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
     if (result.rows[0].job_id) await boss.cancel(ASSESSMENT_QUEUE, result.rows[0].job_id);
     return { status: "CANCELLED", assessment_id: request.params.id };
   });
-  app.get("/api/assessment-corpus", { schema: { tags: ["Assessments"], summary: "Preview regulation snapshots used for organization-wide assessment" } }, async (request) => {
+  app.get("/api/assessment-corpus", { schema: { tags: ["Assessments"], summary: "Preview eligible regulation snapshots for assessment scope" } }, async (request) => {
     const documents = await selectAssessmentCorpus(request.identity!.organization_id);
     const cached = await pool.query(`SELECT COUNT(*)::int AS snapshots,COALESCE(SUM(jsonb_array_length(obligations)),0)::int AS obligations FROM
       (SELECT DISTINCT ON (document_id) document_id,obligations FROM regulatory_obligation_cache
@@ -63,6 +64,7 @@ export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
         properties: {
           assessment_date: { type: "string", format: "date" },
           policy_document_ids: { type: "array", minItems: 1, maxItems: 5, uniqueItems: true, items: { type: "string", format: "uuid" } },
+          regulation_document_ids: { type: "array", minItems: 1, uniqueItems: true, items: { type: "string", format: "uuid" }, description: "Optional subset of the eligible regulation snapshots; omitted means all." },
         },
       },
       response: {
@@ -77,9 +79,16 @@ export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
     if (!process.env.OPENAI_API_KEY) return reply.code(503).send({ error: "AI assessment is unavailable: OPENAI_API_KEY is not configured on the API server." });
     const policies = await pool.query("SELECT id, document_group_id, filename, content_hash, version_label, processing_status FROM documents WHERE id = ANY($1::uuid[]) AND organization_id = $2", [request.body.policy_document_ids, request.identity!.organization_id]);
     if (policies.rows.some((document) => !["COMPLETED", "COMPLETED_WITH_WARNINGS"].includes(document.processing_status))) return reply.code(409).send({ error: "Wait for policy extraction to finish before assessing." });
-    const corpus = await selectAssessmentCorpus(request.identity!.organization_id);
-    if (!corpus.length) return reply.code(409).send({ error: "No current regulatory snapshots are ready. Import and extract official regulation documents first." });
-    const excluded = await excludedCorpusSources(request.identity!.organization_id, corpus);
+    const allCorpus = await selectAssessmentCorpus(request.identity!.organization_id);
+    if (!allCorpus.length) return reply.code(409).send({ error: "No current regulatory snapshots are ready. Import and extract official regulation documents first." });
+    let scope: ReturnType<typeof scopeAssessmentCorpus>;
+    try { scope = scopeAssessmentCorpus(allCorpus,request.body.regulation_document_ids); }
+    catch (error) { return reply.code(400).send({error:error instanceof Error ? error.message : "Invalid regulatory scope."}); }
+    const corpus = scope.documents;
+    const excluded = await excludedCorpusSources(request.identity!.organization_id, allCorpus);
+    const omitted = scope.omitted;
+    const coverageWarnings = excluded.map((group) => `Excluded source (no complete eligible snapshot with legal provisions; language placeholders must be replaced with the original text): ${group.title}`);
+    if (omitted) coverageWarnings.push(`Focused assessment scope: ${omitted} eligible regulation snapshot(s) were not selected. Results do not cover those sources.`);
     const baseline = await pool.query(`SELECT id FROM assessments WHERE organization_id=$1 AND status='COMPLETED'
       ORDER BY created_at DESC LIMIT 1`, [request.identity!.organization_id]);
     const id = randomUUID();
@@ -91,7 +100,7 @@ export function registerAssessmentRoutes(app: FastifyInstance, boss: PgBoss) {
       [id, assessmentDate, request.body.policy_document_ids, request.identity!.organization_id,
         corpus.map((document) => document.id), JSON.stringify({ organization_type: request.identity!.organization_type, activities: request.identity!.activities, assessment_date: assessmentDate }),
         JSON.stringify([...policies.rows.map((document) => ({ ...document, kind: "policy" })), ...corpus.map((document) => ({ ...document, kind: "regulation" }))]),
-        JSON.stringify(excluded.map((group) => `Excluded source (no complete eligible snapshot with legal provisions; language placeholders must be replaced with the original text): ${group.title}`)),
+         JSON.stringify(coverageWarnings),
         baseline.rows[0]?.id ?? null, process.env.OPENAI_MODEL ?? "gpt-6-luna"],
     ).catch((error: unknown) => { if ((error as { code?: string }).code === "23505") return null; throw error; });
     if (!created) return reply.code(409).send({ error: "An assessment is already queued or processing." });

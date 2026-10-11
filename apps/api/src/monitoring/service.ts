@@ -10,6 +10,8 @@ import { allocateVersion } from "../documents/versions.js";
 import { storeUpload } from "../documents/storage.js";
 import { MONITOR_CHECK_QUEUE, MONITOR_DISPATCH_QUEUE } from "../documents/queue.js";
 import { comparableSections, monitoringUrl, monitorInterval, textHash } from "./content.js";
+import { discoverNewLegislation } from "./legislation-discovery.js";
+import { queueNotification } from "../notifications/service.js";
 
 const selectSections = `SELECT section.section_type, section.source_reference,
   COALESCE(NULLIF(section.normalized_content, ''), section.content) AS normalized_content,
@@ -40,6 +42,8 @@ export async function discoverMonitoringSources() {
 
 export async function dispatchSourceChecks(boss: PgBoss) {
   await discoverMonitoringSources();
+  try { await discoverNewLegislation(boss); }
+  catch (error) { console.error("Lex.uz new-legislation discovery failed", error); }
   const due = await pool.query("SELECT id FROM regulatory_sources WHERE enabled AND next_check_at <= NOW() ORDER BY next_check_at LIMIT 100");
   for (const [index, source] of due.rows.entries()) {
     // Stagger checks and deduplicate on-demand/scheduled requests for the source.
@@ -60,7 +64,7 @@ export async function startRegulatoryMonitor(boss: PgBoss) {
   await boss.schedule(MONITOR_DISPATCH_QUEUE, "*/5 * * * *", {}, { tz: "UTC" });
   await boss.work(MONITOR_DISPATCH_QUEUE, async () => { await dispatchSourceChecks(boss); });
   await boss.work<{ sourceId: string }>(MONITOR_CHECK_QUEUE, async ([job]) => {
-    if (job) await checkRegulatorySource(job.data.sourceId);
+    if (job) await checkRegulatorySource(job.data.sourceId, { boss });
   });
   await boss.send(MONITOR_DISPATCH_QUEUE, {}, { singletonKey: "startup", singletonSeconds: 60, retryLimit: 0 });
 }
@@ -68,6 +72,7 @@ export async function startRegulatoryMonitor(boss: PgBoss) {
 export async function checkRegulatorySource(sourceId: string, dependencies: {
   download?: typeof downloadRemoteDocument;
   extract?: typeof extractDocument;
+  boss?: PgBoss;
 } = {}) {
   const client = await pool.connect();
   let locked = false;
@@ -136,6 +141,12 @@ export async function checkRegulatorySource(sourceId: string, dependencies: {
     await client.query(`UPDATE regulatory_source_checks SET status = $2, completed_at = NOW(),
       content_hash = $3, text_hash = $4, document_id = $5 WHERE id = $1`, [checkId, status, rawHash, newHash, documentId]);
     await client.query("COMMIT"); transaction = false; storedPath = undefined;
+    if (changed && dependencies.boss && source.organization_id) {
+      const url=`${(process.env.WEB_APP_URL??"http://localhost:5173").replace(/\/$/,"")}/updates`;
+      try { await queueNotification({organizationId:source.organization_id,eventKey:`regulatory-change:${checkId}`,type:"REGULATION_CHANGED",
+        subject:"A monitored regulation changed",body:`The monitored source “${source.name}” changed. Review the detected update and its comparison before deciding whether to use it.\n\nOpen regulatory updates: ${url}`},dependencies.boss); }
+      catch(error) { console.error("Could not queue regulatory-change email",error); }
+    }
   } catch (error) {
     if (transaction) await client.query("ROLLBACK");
     if (storedPath) await unlink(storedPath).catch(() => undefined);

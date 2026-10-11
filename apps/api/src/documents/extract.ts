@@ -157,7 +157,7 @@ export async function extractDocument(
 
     if (!sections.some((section) => ["CHAPTER", "ARTICLE", "PARAGRAPH", "PAGE"].includes(section.sectionType))) {
       const originalPath = legalBody.find(".COMMENT_FOR_WARNING a[href]").first().attr("href");
-      const originalUrl = originalPath && /^\/docs\/\d+$/.test(originalPath)
+      const originalUrl = originalPath && /^\/docs\/-?\d+$/.test(originalPath)
         ? `https://lex.uz${originalPath}` : null;
       throw new UnsupportedDocumentError(originalUrl
         ? `This Lex.uz language page contains no legal provisions. Import the original-language text instead: ${originalUrl}`

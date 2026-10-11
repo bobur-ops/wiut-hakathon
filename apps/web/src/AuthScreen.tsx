@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Alert, Button, Form, Input, Select, Typography } from "antd";
-import { api, jsonBody, setSessionToken, type Identity } from "./api";
+import { api, jsonBody, type Identity } from "./api";
 
 export const organizationTypes = [
   { value: "commercial_bank", label: "Commercial bank" },
@@ -16,8 +16,7 @@ export default function AuthScreen({ onSignedIn }: { onSignedIn: (identity: Iden
   async function submit(values: { email: string; password: string; name?: string; organization_type?: string }) {
     setBusy(true); setError("");
     try {
-      const result = await api<{ token: string; identity: Identity }>(`/api/auth/${register ? "register" : "login"}`, jsonBody(values));
-      setSessionToken(result.token);
+      const result = await api<{ identity: Identity }>(`/api/auth/${register ? "register" : "login"}`, jsonBody(values));
       onSignedIn(result.identity);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Sign-in failed."); }
     finally { setBusy(false); }

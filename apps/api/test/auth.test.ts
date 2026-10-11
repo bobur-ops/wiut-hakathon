@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { unlink } from "node:fs/promises";
 import test from "node:test";
 import type { PgBoss } from "pg-boss";
-import { hashPassword, hashToken, verifyPassword } from "../src/auth/security.js";
+import { hashPassword, hashToken, sessionCookie, sessionTokenFromHeaders, verifyPassword } from "../src/auth/security.js";
 import { buildApp } from "../src/app.js";
 import { migrate, pool } from "../src/db.js";
 import { getStoredFilePath } from "../src/documents/storage.js";
@@ -19,6 +19,16 @@ test("passwords are salted and sessions are hashed", async () => {
   assert.notEqual(hashToken("token"), "token");
 });
 
+test("session credentials can be read from HttpOnly cookie headers with bearer compatibility",()=>{
+  const token="a".repeat(64);
+  assert.equal(sessionTokenFromHeaders(undefined,`theme=dark; regcheck_session=${token}; path=/`),token);
+  assert.equal(sessionTokenFromHeaders(`Bearer ${token}`,`regcheck_session=${"b".repeat(64)}`),token);
+  assert.equal(sessionTokenFromHeaders(undefined,"regcheck_session=not-a-token"),null);
+  assert.match(sessionCookie(token),/HttpOnly/);
+  assert.match(sessionCookie(token),/SameSite=Lax/);
+  assert.match(sessionCookie(null),/Max-Age=0/);
+});
+
 test("organization API enforces authentication, document/assessment isolation, grouping, and logout", {
   skip: process.env.RUN_DB_TESTS !== "1",
 }, async () => {
@@ -27,6 +37,7 @@ test("organization API enforces authentication, document/assessment isolation, g
   const app = buildApp(boss);
   const orgIds: string[] = [];
   const tokens: string[] = [];
+  const cookies: string[] = [];
   const emails: string[] = [];
   const documentIds: string[] = [];
   const assessmentId = randomUUID();
@@ -42,12 +53,16 @@ test("organization API enforces authentication, document/assessment isolation, g
       } });
       assert.equal(register.statusCode, 201, register.body);
       orgIds.push(register.json().identity.organization_id);
-      tokens.push(register.json().token);
+      const setCookie=register.headers["set-cookie"];
+      assert.equal(typeof setCookie,"string");
+      assert.match(setCookie as string,/HttpOnly/);
+      cookies.push((setCookie as string).split(";",1)[0]!);
+      tokens.push(cookies.at(-1)!.split("=",2)[1]!);
     }
     const authA = { authorization: `Bearer ${tokens[0]}` };
     const authB = { authorization: `Bearer ${tokens[1]}` };
     for (let reload = 0; reload < 2; reload++) {
-      const restored = await app.inject({ method: "GET", url: "/api/auth/me", headers: authA });
+      const restored = await app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie:cookies[0]! } });
       assert.equal(restored.statusCode, 200, restored.body);
       assert.equal(restored.json().identity.organization_id, orgIds[0]);
     }
@@ -56,8 +71,10 @@ test("organization API enforces authentication, document/assessment isolation, g
     const login = await app.inject({ method: "POST", url: "/api/auth/login", payload: { email: emails[0]!.toUpperCase(), password: "test-only-password-123" } });
     assert.equal(login.statusCode, 200);
     assert.equal(login.json().identity.organization_id, orgIds[0]);
-    await pool.query("UPDATE auth_sessions SET expires_at = NOW() - INTERVAL '1 minute' WHERE token_hash = $1", [hashToken(login.json().token)]);
-    assert.equal((await app.inject({ method: "GET", url: "/api/auth/me", headers: { authorization: `Bearer ${login.json().token}` } })).statusCode, 401);
+    const loginCookie=String(login.headers["set-cookie"]).split(";",1)[0]!;
+    const loginToken=loginCookie.split("=",2)[1]!;
+    await pool.query("UPDATE auth_sessions SET expires_at = NOW() - INTERVAL '1 minute' WHERE token_hash = $1", [hashToken(loginToken)]);
+    assert.equal((await app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie:loginCookie } })).statusCode, 401);
     const boundary = "regcheck-test-boundary";
     const multipart = `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="synthetic-test.txt"\r\nContent-Type: text/plain\r\n\r\nSynthetic policy: retain customer records.\r\n--${boundary}\r\nContent-Disposition: form-data; name="document_type"\r\n\r\npolicy\r\n--${boundary}--\r\n`;
     const uploaded = await app.inject({ method: "POST", url: "/api/documents", headers: { ...authA, "content-type": `multipart/form-data; boundary=${boundary}` }, payload: multipart });
@@ -105,9 +122,10 @@ test("organization API enforces authentication, document/assessment isolation, g
     const savedReviews = await app.inject({ method: "GET", url: `/api/findings/${findingId}/reviews`, headers: authA });
     assert.notEqual(savedReviews.json().reviews[0].reviewer_identifier, "spoofed-reviewer");
     assert.equal((await app.inject({ method: "GET", url: `/api/findings/${findingId}/reviews`, headers: authB })).statusCode, 404);
-    const logout = await app.inject({ method: "POST", url: "/api/auth/logout", headers: authA });
+    const logout = await app.inject({ method: "POST", url: "/api/auth/logout", headers: { cookie:cookies[0]! } });
     assert.equal(logout.statusCode, 204);
-    assert.equal((await app.inject({ method: "GET", url: "/api/auth/me", headers: authA })).statusCode, 401);
+    assert.match(String(logout.headers["set-cookie"]),/Max-Age=0/);
+    assert.equal((await app.inject({ method: "GET", url: "/api/auth/me", headers: { cookie:cookies[0]! } })).statusCode, 401);
   } finally {
     await app.close();
     const files = await pool.query("SELECT storage_key FROM documents WHERE id = ANY($1::uuid[])", [documentIds]);

@@ -20,6 +20,8 @@ export function buildApp(boss: PgBoss) {
 
   app.register(cors, {
     origin: (process.env.CORS_ORIGINS ?? "http://localhost:5173,http://127.0.0.1:5173").split(","),
+    methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
   });
   if (process.env.RATE_LIMIT_ENABLED === "true") {
     app.register(rateLimit, { max: 120, timeWindow: "1 minute" });
@@ -54,7 +56,7 @@ export function buildApp(boss: PgBoss) {
 
   app.register(async (api) => {
     installAccessControl(api);
-    registerAuthRoutes(api);
+    registerAuthRoutes(api,boss);
     api.get("/api/health", {
       schema: {
         tags: ["System"],

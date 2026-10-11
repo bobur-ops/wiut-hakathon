@@ -17,7 +17,7 @@ function lexSourceKey(sourceUrl: string | null | undefined, documentType: string
   if (!sourceUrl) return null;
   const url = new URL(sourceUrl);
   if (!["lex.uz", "www.lex.uz"].includes(url.hostname.toLowerCase())) return null;
-  const id = url.pathname.match(/^\/(?:docs|pdffile)\/(\d+)\/?$/)?.[1];
+  const id = url.pathname.match(/^\/(?:docs|pdffile)\/(-?\d+)\/?$/)?.[1];
   return id ? `lex:${id}:${documentType}` : null;
 }
 

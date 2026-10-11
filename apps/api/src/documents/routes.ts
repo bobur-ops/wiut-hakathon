@@ -10,7 +10,7 @@ import { allocateVersion, DocumentVersionError } from "./versions.js";
 import type { PgBoss } from "pg-boss";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const DOCUMENT_TYPES = ["policy", "regulation", "guidance", "procedure", "other"] as const;
+const DOCUMENT_TYPES = ["policy", "regulation", "guidance", "procedure", "legislation", "other"] as const;
 const DOCUMENT_STATUSES = ["QUEUED", "PROCESSING", "COMPLETED", "COMPLETED_WITH_WARNINGS", "FAILED", "UNSUPPORTED"] as const;
 const BATCH_STATUSES = ["QUEUED", "PROCESSING", "COMPLETED", "COMPLETED_WITH_ERRORS"] as const;
 const IMPORT_ITEM_STATUSES = ["QUEUED", "DOWNLOADING", "QUEUED_EXTRACTION", "COMPLETED", "COMPLETED_WITH_WARNINGS", "FAILED", "UNSUPPORTED"] as const;
@@ -694,7 +694,7 @@ export function registerDocumentRoutes(app: FastifyInstance, boss: PgBoss) {
       if (document.source_type !== "REMOTE" || document.document_type !== "regulation" || document.mime_type !== "text/html") return false;
       try {
         const url = new URL(String(document.source_url));
-        return ["lex.uz", "www.lex.uz"].includes(url.hostname.toLowerCase()) && /^\/docs\/\d+\/?$/.test(url.pathname);
+        return ["lex.uz", "www.lex.uz"].includes(url.hostname.toLowerCase()) && /^\/docs\/-?\d+\/?$/.test(url.pathname);
       } catch {
         return false;
       }

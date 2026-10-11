@@ -35,7 +35,7 @@ export async function discoverLexDocumentVersions(input: string) {
 
   $(".lx_date_link").each((_, element) => {
     const onclick = $(element).attr("onclick") ?? "";
-    const match = onclick.match(/lxOpenUrl\(['"](\/docs\/\d+\?ONDATE=(\d{2}\.\d{2}\.\d{4}))['"]\)/);
+    const match = onclick.match(/lxOpenUrl\(['"](\/docs\/-?\d+\?ONDATE=(\d{2}\.\d{2}\.\d{4}))['"]\)/);
     const path = match?.[1];
     const dateText = match?.[2];
     if (!path || !dateText || new URL(path, initial.origin).pathname !== initial.pathname) return;
@@ -68,7 +68,7 @@ export async function discoverLexDocumentVersions(input: string) {
 
 function isLexDocumentPage(url: URL) {
   const hostname = url.hostname.toLowerCase().replace(/^www\./, "");
-  return hostname === "lex.uz" && /^\/docs\/\d+\/?$/.test(url.pathname);
+  return hostname === "lex.uz" && /^\/docs\/-?\d+\/?$/.test(url.pathname);
 }
 
 async function validateRemoteUrl(url: URL) {

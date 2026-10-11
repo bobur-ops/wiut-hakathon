@@ -5,7 +5,7 @@ import { api, jsonBody } from "./api";
 import { findingLabels, type AssessmentPayload, type Finding } from "./assessment-types";
 
 interface Policy { id: string; filename: string; version_label: string | null; document_group_id: string; processing_status: string }
-interface Corpus { documents: { id: string; title: string; version_label: string; source_reviewed: boolean }[]; excluded_sources?: { id: string; title: string }[]; limitations: string[];
+interface Corpus { documents: { id: string; title: string; version_label: string | null; source_reviewed: boolean }[]; excluded_sources?: { id: string; title: string }[]; limitations: string[];
   cached_snapshots?: number; cached_obligations?: number; comparison_model?: string; batch_size?: number; budget_usd?: number }
 
 export default function AssessmentWorkspace() {
@@ -15,6 +15,7 @@ export default function AssessmentWorkspace() {
   const filter = searchParams.get("filter") ?? "attention";
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [selectedRegulations, setSelectedRegulations] = useState<string[]>([]);
   const [corpus, setCorpus] = useState<Corpus | null>(null);
   const [result, setResult] = useState<AssessmentPayload | null>(null);
   const [error, setError] = useState("");
@@ -40,6 +41,7 @@ export default function AssessmentWorkspace() {
         .then(([documents, baseline]) => {
           if (!active) return;
           setPolicies(documents.documents); setCorpus(baseline);
+          setSelectedRegulations(baseline.documents.map(document => document.id));
           const groups = new Set<string>();
           const latest = documents.documents.filter((document) => {
             if (!["COMPLETED", "COMPLETED_WITH_WARNINGS"].includes(document.processing_status) || groups.has(document.document_group_id)) return false;
@@ -55,7 +57,7 @@ export default function AssessmentWorkspace() {
   async function start() {
     setStarting(true); setError("");
     try {
-      const response = await api<{ assessment_id: string }>("/api/assessments", jsonBody({ policy_document_ids: selected }));
+      const response = await api<{ assessment_id: string }>("/api/assessments", jsonBody({ policy_document_ids: selected, regulation_document_ids: selectedRegulations }));
       navigate(`/assessments/${response.assessment_id}`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not queue assessment."); }
     finally { setStarting(false); }
@@ -73,10 +75,16 @@ export default function AssessmentWorkspace() {
     {error && <Alert type="error" showIcon message={error} />}
     <Typography.Paragraph>Select policy snapshots and start the check. The system reads the selected regulation snapshots, extracts draft requirements, and checks policy evidence. No prompts or requirements to type.</Typography.Paragraph>
     <div className="assessment-start-grid"><section><Typography.Title level={4}>Internal policies</Typography.Title><Checkbox.Group className="document-list" value={selected} onChange={(values) => setSelected(values as string[])}>{policies.map((policy) => <Checkbox key={policy.id} value={policy.id} disabled={!["COMPLETED", "COMPLETED_WITH_WARNINGS"].includes(policy.processing_status) || (selected.length >= 5 && !selected.includes(policy.id))} className="document-choice"><span className="document-meta"><b>{policy.filename}</b><small>{policy.version_label} · {policy.processing_status.replaceAll("_", " ")}</small></span></Checkbox>)}</Checkbox.Group>{!policies.length && <Empty description="Upload an internal policy first"><Link to="/policies">Go to policies</Link></Empty>}<small className="selection-note">Latest ready policy versions are preselected · up to 5 snapshots per run</small></section><section className="corpus-preview"><span className="eyebrow">REGULATORY SCOPE</span><strong>{corpus?.documents.length ?? 0} regulation snapshots</strong><p>One selected snapshot per imported regulation group. Source-reviewed updates take precedence; pending updates and historical revisions are not automatically used.</p><Collapse ghost items={[{ key: "sources", label: "View included regulations", children: <ul>{corpus?.documents.map((document) => <li key={document.id}>{document.title}<small>{document.version_label} · {document.source_reviewed ? "Source reviewed; obligations remain draft" : "Observed snapshot — legal dates unverified"}</small></li>)}</ul> }]} /></section></div>
-    <Alert type="warning" showIcon message="AI-extracted requirements need legal review" description="The first run can take several minutes while the full selected corpus is processed. Later runs reuse cached obligations. This does not guarantee every duty was identified or establish legal compliance." />
+    <Card size="small" title={`Regulatory scope · ${selectedRegulations.length} of ${corpus?.documents.length ?? 0} selected`}>
+      <Typography.Paragraph type="secondary">All eligible regulations are selected by default. Unselect sources to run a focused assessment; those sources will not be covered in this run.</Typography.Paragraph>
+      <Space wrap><Button size="small" onClick={() => setSelectedRegulations(corpus?.documents.map(document => document.id) ?? [])}>Select all regulations</Button><Button size="small" disabled={!selectedRegulations.length} onClick={() => setSelectedRegulations([])}>Clear selection</Button></Space>
+      <Checkbox.Group className="document-list" value={selectedRegulations} onChange={values => setSelectedRegulations(values as string[])}>{corpus?.documents.map(document => <Checkbox key={document.id} value={document.id} className="document-choice"><span className="document-meta"><b>{document.title}</b><small>{document.version_label ?? "Current snapshot"} · {document.source_reviewed ? "Source reviewed; obligations remain draft" : "Observed snapshot — legal dates unverified"}</small></span></Checkbox>)}</Checkbox.Group>
+    </Card>
+    {selectedRegulations.length > 0 && corpus && selectedRegulations.length < corpus.documents.length && <Alert type="warning" showIcon message="Focused assessment — partial regulatory coverage" description={`${corpus.documents.length - selectedRegulations.length} eligible regulation snapshot(s) are excluded. Findings apply only to selected sources.`} />}
+    <Alert type="warning" showIcon message="AI-extracted requirements need legal review" description="The first run can take several minutes while the selected corpus is processed. Later runs reuse cached obligations. This does not guarantee every duty was identified or establish legal compliance." />
     {!!corpus?.excluded_sources?.length && <Alert type="warning" showIcon message={`${corpus.excluded_sources.length} regulatory sources are not ready for assessment`} description={corpus.excluded_sources.map((source) => source.title).join("; ")} />}
     <Alert type="info" showIcon message="Batched, incremental assessment" description={`${corpus?.comparison_model ?? "Configured model"} · up to ${corpus?.batch_size ?? 8} requirements per comparison request · ${corpus?.cached_snapshots ?? 0} snapshots / ${corpus?.cached_obligations ?? 0} draft requirements cached · $${corpus?.budget_usd ?? 2} budget guard. Unchanged findings are reused; reported token usage and estimated spend appear during processing.`} />
-    <Button type="primary" size="large" loading={starting} disabled={!selected.length || !corpus?.documents.length} onClick={() => void start()}>Assess {selected.length} {selected.length === 1 ? "policy" : "policies"} against the corpus</Button>
+    <Button type="primary" size="large" loading={starting} disabled={!selected.length || !selectedRegulations.length} onClick={() => void start()}>Assess {selected.length} {selected.length === 1 ? "policy" : "policies"} against {selectedRegulations.length} regulations</Button>
   </Card>;
   if (!result) return <Alert type="error" showIcon message={error || "Assessment could not be loaded"} />;
   const assessment = result.assessment;

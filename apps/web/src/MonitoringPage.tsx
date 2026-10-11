@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Card, Drawer, Empty, Input, Space, Switch, Table, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Drawer, Empty, Input, Modal, Space, Switch, Table, Tag, Typography, message } from "antd";
 import { api, jsonBody } from "./api";
+import { Link } from "react-router-dom";
 
 interface Source {
   id: string; name: string; source_url: string; enabled: boolean; check_interval_minutes: number;
@@ -15,11 +16,19 @@ interface Update {
   reviewer_identifier: string | null; review_note: string | null;
 }
 interface Check { id: string; started_at: string; completed_at: string | null; status: string; error_message: string | null }
+interface NewAct { id: string; lex_document_id: string; title: string; issuer_text: string | null; published_at: string | null; official_url: string; pdf_url: string | null; discovered_at: string; status: "NEW" | "LIKELY_RELEVANT" | "RELEVANT" | "NOT_RELEVANT" | "QUEUED" | "IMPORTING" | "IMPORTED" | "IMPORT_FAILED"; relevance_reasons: string[]; reviewer_identifier: string | null; review_note: string | null; review_decision: "RELEVANT" | "NOT_RELEVANT" | null; status_note: string | null; impact_assessment_id: string|null; impact_assessment_status: string|null; impact_assessment_stage: string|null; impact_assessment_completed_at: string|null }
+interface DiscoveryRun { started_at: string; completed_at: string | null; status: string; scanned_count: number; inserted_count: number; error_message: string | null }
 const time = (value: string | null) => value ? new Date(value).toLocaleString() : "Not yet checked";
+const listingDate = (value: string | null) => {
+  const match=value?.slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? new Date(Number(match[1]),Number(match[2])-1,Number(match[3]),12).toLocaleDateString() : "Not parsed";
+};
 
 export default function MonitoringPage() {
   const [sources, setSources] = useState<Source[]>([]);
   const [updates, setUpdates] = useState<Update[]>([]);
+  const [newActs, setNewActs] = useState<NewAct[]>([]);
+  const [discoveryRun, setDiscoveryRun] = useState<DiscoveryRun | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [canReviewShared, setCanReviewShared] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -27,16 +36,19 @@ export default function MonitoringPage() {
   const [selected, setSelected] = useState<Update | null>(null);
   const [history, setHistory] = useState<{ name: string; checks: Check[] } | null>(null);
   const [note, setNote] = useState("");
+  const [reviewing, setReviewing] = useState<{act:NewAct;decision:"RELEVANT"|"NOT_RELEVANT"}|null>(null);
+  const [reviewNote, setReviewNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [toast, holder] = message.useMessage();
   const refresh = useCallback(async () => {
     try {
-      const [result, candidates] = await Promise.all([
+      const [result, candidates, recentActs] = await Promise.all([
         api<{ monitor_enabled: boolean; shared_review_allowed: boolean; sources: Source[] }>("/api/regulatory-sources"),
         api<{ updates: Update[] }>("/api/regulatory-updates"),
+        api<{ items: NewAct[]; latest_run: DiscoveryRun | null }>("/api/new-legislation"),
       ]);
       setSources(result.sources); setEnabled(result.monitor_enabled); setCanReviewShared(result.shared_review_allowed);
-      setUpdates(candidates.updates); setError("");
+      setUpdates(candidates.updates); setNewActs(recentActs.items); setDiscoveryRun(recentActs.latest_run); setError("");
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Could not load monitoring status."); }
     finally { setLoading(false); }
   }, []);
@@ -59,6 +71,14 @@ export default function MonitoringPage() {
       setSelected(null); setNote("");
     }, "Source review recorded. Prior snapshots remain unchanged.");
   }
+  async function reviewNewAct() {
+    if (!reviewing || reviewNote.trim().length<5) return;
+    const {act,decision}=reviewing;
+    await run(async()=>{
+      await api(`/api/new-legislation/${act.id}/review`,jsonBody({decision,note:reviewNote.trim()}));
+      setReviewing(null);setReviewNote("");
+    },decision==="RELEVANT"?"Relevance confirmed. Preliminary impact assessment queued.":"Not-relevant decision saved.");
+  }
   const pending = updates.filter((update) => update.status === "PENDING_REVIEW");
   const failed = sources.filter((source) => source.enabled && source.last_status === "FAILED");
   const stale = sources.filter((source) => source.enabled && (!source.last_successful_check_at || Date.now() - new Date(source.last_successful_check_at).getTime() > source.check_interval_minutes * 2 * 60_000));
@@ -67,6 +87,18 @@ export default function MonitoringPage() {
     <Alert type={enabled ? "info" : "warning"} showIcon message={enabled ? "Scheduled checks configured · source checks run in the background worker" : "Scheduled monitoring is disabled"} description="Only configured imported official URLs are checked. This does not discover every new law. Check timestamps and failures below; configuration alone does not prove a check succeeded." />
     {error && <Alert type="error" showIcon message={error} />}
     <div className="metrics-grid monitoring-metrics"><div className="metric-card"><span>Configured sources</span><strong>{sources.length}</strong><small>Current pages, not historical revisions</small></div><div className="metric-card"><span>Pending updates</span><strong>{pending.length}</strong><small>Among latest 100 candidates</small></div><div className="metric-card"><span>Failed checks</span><strong>{failed.length}</strong><small>Last check failed</small></div><div className="metric-card"><span>Stale / unverified checks</span><strong>{stale.length}</strong><small>No recent successful retrieval</small></div></div>
+    <Card title="New legislation · Lex.uz" extra={<Space><Button loading={busy} onClick={() => void run(() => api("/api/new-legislation/scan", { method: "POST" }), "Latest Lex.uz publications checked.")}>Check now</Button><a href="https://lex.uz/ru/search/unique" target="_blank" rel="noreferrer">Open Lex.uz listing ↗</a></Space>}>
+      <Typography.Paragraph type="secondary">Recent official publications are screened using multilingual fintech-domain keywords matched against your organization type and declared activities. Matches are triage hints—not legal applicability conclusions. Review the official text, effective date, and transition rules before deciding what to do.</Typography.Paragraph>
+      {discoveryRun?.status === "FAILED" && <Alert type="error" showIcon message="Latest new-legislation discovery failed" description={`${discoveryRun.error_message ?? "Unknown source error"} · Last attempt ${time(discoveryRun.started_at)}. Existing inbox items are not proof that discovery is current.`} />}
+      {discoveryRun?.status === "COMPLETED" && <Typography.Text type="secondary">Last successful scan: {time(discoveryRun.completed_at)} · {discoveryRun.scanned_count} listing items scanned · {discoveryRun.inserted_count} new items discovered</Typography.Text>}
+      <Table<NewAct> rowKey="id" dataSource={newActs} loading={loading} pagination={{ pageSize: 8 }} scroll={{ x: 900 }} locale={{ emptyText: <Empty description="No recent acts discovered yet" /> }} columns={[
+        { title: "Publication", width: 360, render: (_, act) => <div className="monitor-source"><a href={act.official_url} target="_blank" rel="noreferrer"><strong>{act.title}</strong> ↗</a><small>{act.issuer_text || "Issuer/date not parsed from listing"}</small></div> },
+        { title: "Date shown on listing", dataIndex: "published_at", render: (value: string | null, act) => `${listingDate(value)}${/registered|рўйхатдан ўтган|ro['’ʻʼ]?yxatdan o['’ʻʼ]?tgan|рўйхатга олинган/iu.test(act.issuer_text ?? "") ? " · registration date" : ""}` },
+        { title: "Triage signals", render: (_, act) => <Space wrap>{(act.relevance_reasons ?? []).length ? act.relevance_reasons.map(reason => <Tag color="blue" key={reason}>{reason.replace("Keyword match: ","")}</Tag>) : <Tag>Needs screening</Tag>}</Space> },
+        { title: "Automatic triage", render: (_, act) => <Space direction="vertical"><Tag color={act.status === "IMPORTED" ? "blue" : act.status === "NOT_RELEVANT" ? "default" : act.status === "IMPORT_FAILED" ? "red" : act.status === "NEW" ? "gold" : "green"}>{act.status === "LIKELY_RELEVANT" ? "Likely relevant · waiting" : act.status === "QUEUED" ? "Automatic check queued" : act.status === "IMPORTING" ? "Fetching official text" : act.status.replaceAll("_"," ")}</Tag>{act.status_note && <Typography.Text type="danger">{act.status_note}</Typography.Text>}{act.status === "IMPORTED" && !act.review_decision && <Typography.Text type="secondary">Preliminary check may already be running; review does not undo it.</Typography.Text>}{act.review_decision ? <Tag>Human review: {act.review_decision.replaceAll("_"," ")}</Tag> : <Space><Button size="small" disabled={busy || ["IMPORTING","IMPORT_FAILED"].includes(act.status)} onClick={() => {setReviewing({act,decision:"RELEVANT"});setReviewNote("");}}>Confirm relevance</Button><Button size="small" disabled={busy || ["IMPORTING","IMPORT_FAILED"].includes(act.status)} onClick={() => {setReviewing({act,decision:"NOT_RELEVANT"});setReviewNote("");}}>Not relevant</Button></Space>}{act.status === "IMPORT_FAILED" && <Button size="small" loading={busy} onClick={() => void run(() => api(`/api/new-legislation/${act.id}/retry`,jsonBody({})),"Act retrieval/extraction retry queued.")}>Retry</Button>}{act.status === "IMPORTED" && (act.impact_assessment_id ? <Space><Tag color={act.impact_assessment_status === "COMPLETED" ? "green" : act.impact_assessment_status === "FAILED" ? "red" : "blue"}>Impact {act.impact_assessment_status?.toLowerCase()}</Tag><Link to={`/assessments/${act.impact_assessment_id}`}>{act.impact_assessment_status === "COMPLETED" ? "Open assessment" : act.impact_assessment_status === "FAILED" ? "View assessment failure" : "View assessment progress"}</Link></Space> : <Typography.Text type="secondary">Imported · waiting for an eligible completed baseline to start impact analysis.</Typography.Text>)}</Space> },
+      ]} />
+      <Alert type="info" showIcon message="Discovery is bounded to the latest 50 entries on Lex.uz’s ‘Новое в законодательстве’ listing per scan; at most 3 automatic imports are queued per scan." description="Triage checks Russian, Uzbek Cyrillic, Uzbek Latin, and English wording. A keyword match automatically fetches and extracts the act, then queues a preliminary policy impact analysis. Acts stay separate from the manually maintained regulatory library; confirming relevance authorizes this impact review only and never adds the act to future regulation baselines. Human review remains required." />
+    </Card>
     <Card title="Official source checks" extra={<Space wrap><Button loading={busy} onClick={() => void run(() => api("/api/regulatory-sources/discover", { method: "POST" }), "Imported official URLs discovered.")}>Discover imported URLs</Button><Button onClick={() => void refresh()}>Refresh</Button></Space>}>
       <Table<Source> rowKey="id" dataSource={sources} loading={loading} pagination={{ pageSize: 10 }} scroll={{ x: 1050 }} columns={[
         { title: "Source", width: 290, render: (_, source) => <div className="monitor-source"><strong>{source.name}</strong><a href={source.source_url} target="_blank" rel="noreferrer">Official document ↗</a><small>{source.organization_id ? "Organization source" : "Shared corpus source"}</small></div> },
@@ -85,6 +117,9 @@ export default function MonitoringPage() {
         { title: "", render: (_, update) => <Button onClick={() => { setSelected(update); setNote(""); }}>View changes</Button> },
       ]} />
     </Card>
+    <Modal title={reviewing?.decision === "RELEVANT" ? "Confirm likely relevance" : "Record not relevant"} open={Boolean(reviewing)} onCancel={()=>{setReviewing(null);setReviewNote("");}} onOk={()=>void reviewNewAct()} confirmLoading={busy} okButtonProps={{disabled:reviewNote.trim().length<5}} okText={reviewing?.decision === "RELEVANT" ? "Confirm & analyze" : "Save review"} cancelText="Cancel">
+      {reviewing && <><Typography.Paragraph><a href={reviewing.act.official_url} target="_blank" rel="noreferrer">{reviewing.act.title} ↗</a></Typography.Paragraph><Alert type="info" showIcon message={reviewing.decision === "RELEVANT" ? "This confirms relevance for this act’s impact review." : "This records that the act is not relevant to your organization."} description="Acts remain separate from the regulation library. This review does not add the act to future regulatory baselines and is not legal certification."/><Typography.Paragraph style={{marginTop:16}}>{reviewing.decision === "RELEVANT" ? "Why may it affect your organization?" : "Why is it not relevant?"}</Typography.Paragraph><Input.TextArea value={reviewNote} onChange={event=>setReviewNote(event.target.value)} rows={4} maxLength={4000} showCount placeholder="Add a brief reason (at least 5 characters)"/></>}
+    </Modal>
     <Drawer width={1000} title={selected?.name} open={Boolean(selected)} onClose={() => setSelected(null)}>
       {selected && <><Alert type="warning" showIcon message="Policy impact assessment is not connected yet" description="These are source-text differences. No internal policy has been automatically changed or declared affected." /><div className="monitor-snapshot-ids"><span>Previous snapshot: <code>{selected.previous_document_id}</code></span><span>New snapshot: <code>{selected.new_document_id}</code></span><a href={selected.source_url} target="_blank" rel="noreferrer">Open official source ↗</a></div>
         {selected.comparison.changes.length === 0 && <Alert type="info" message="The source hash changed, but the section matcher produced no precise difference. Inspect the snapshots manually." />}

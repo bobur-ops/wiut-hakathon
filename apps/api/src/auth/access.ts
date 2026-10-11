@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { pool } from "../db.js";
-import { hashToken } from "./security.js";
+import { hashToken, sessionTokenFromHeaders } from "./security.js";
 
 export interface Identity {
   user_id: string;
@@ -33,7 +33,7 @@ export function installAccessControl(app: FastifyInstance) {
     reply.header("Cache-Control", "no-store");
     const path = request.url.split("?")[0];
     if (path === "/api/health" || ["/api/auth/login", "/api/auth/register"].includes(path!)) return;
-    const token = request.headers.authorization?.match(/^Bearer ([a-f0-9]{64})$/)?.[1];
+    const token = sessionTokenFromHeaders(request.headers.authorization,request.headers.cookie);
     if (!token) return reply.code(401).send({ error: "Sign in to access your organization workspace." });
     const result = await pool.query<Identity>(
       `SELECT users.id AS user_id, users.organization_id, users.email,

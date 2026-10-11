@@ -3,9 +3,10 @@ import { Alert, Button, Card, Drawer, Empty, Form, Input, Popconfirm, Select, Sp
 import AuthScreen, { organizationTypes } from "./AuthScreen";
 import AssessmentWorkspace from "./AssessmentWorkspace";
 import MonitoringPage from "./MonitoringPage";
-import { api, jsonBody, sessionToken, setSessionToken, type Identity } from "./api";
+import { api, jsonBody, setSessionToken, type Identity } from "./api";
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import FindingPage from "./FindingPage";
+import NotificationSettings from "./NotificationSettings";
 
 type Page = "dashboard" | "policies" | "library" | "assessments" | "updates" | "reviews" | "settings";
 const navigation: { key: Page; label: string; icon: string }[] = [
@@ -32,25 +33,22 @@ const date = (value: string) => new Date(value).toLocaleString();
 export default function App() {
   const location = useLocation();
   const [identity, setIdentity] = useState<Identity | null>(null);
-  const [checking, setChecking] = useState(Boolean(sessionToken()));
+  const [checking, setChecking] = useState(true);
   const [sessionError, setSessionError] = useState("");
   const [restoreAttempt, setRestoreAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
-    const token = sessionToken();
     setSessionError("");
-    if (token) {
-      setChecking(true);
-      api<{ identity: Identity }>("/api/auth/me", { signal: controller.signal })
-        .then((result) => { if (active && sessionToken() === token) setIdentity(result.identity); })
-        .catch((reason) => {
-          // api() invalidates rejected sessions (401). Connection failures must
-          // not erase the saved token or be presented as a signed-out account.
-          if (active && sessionToken() === token) setSessionError(reason instanceof Error ? reason.message : "Could not restore your session.");
-        })
-        .finally(() => { if (active) setChecking(false); });
-    } else setChecking(false);
+    setChecking(true);
+    api<{ identity: Identity }>("/api/auth/me", { signal: controller.signal })
+      .then((result) => { if (active) setIdentity(result.identity); })
+      .catch((reason) => {
+        if (!active) return;
+        if ((reason as {status?:number})?.status === 401) { setIdentity(null); setSessionError(""); }
+        else setSessionError(reason instanceof Error ? reason.message : "Could not restore your session.");
+      })
+      .finally(() => { if (active) setChecking(false); });
     const expire = () => { setIdentity(null); setSessionError(""); };
     window.addEventListener("regcheck-session-expired", expire);
     return () => { active = false; controller.abort(); window.removeEventListener("regcheck-session-expired", expire); };
@@ -176,10 +174,10 @@ function OrganizationWorkspace({ identity, onIdentity, onSignedOut }: { identity
           { title: "Decision", dataIndex: "decision", render: (value: string) => <Tag>{format(value)}</Tag> }, { title: "Reviewer", dataIndex: "reviewer_identifier" }, { title: "Note", dataIndex: "comment" }, { title: "Time", dataIndex: "created_at", render: date },
           { title: "", render: (_, record) => <Button size="small" onClick={() => openAssessment(record.assessment_id)}>Open finding</Button> },
         ]} /></Card>} />
-        <Route path="/settings" element={<Card title="Organization profile" className="settings-card"><Typography.Paragraph type="secondary">Organization type and activities inform applicability in each assessment.</Typography.Paragraph><Form key={identity.name} layout="vertical" initialValues={{ name: identity.name, organization_type: identity.organization_type, activities: identity.activities }} onFinish={async (values) => {
+         <Route path="/settings" element={<><Card title="Organization profile" className="settings-card"><Typography.Paragraph type="secondary">Organization type and activities inform applicability in each assessment.</Typography.Paragraph><Form key={identity.name} layout="vertical" initialValues={{ name: identity.name, organization_type: identity.organization_type, activities: identity.activities }} onFinish={async (values) => {
           try { const result = await api<{ identity: Identity }>("/api/organization", { ...jsonBody(values), method: "PATCH" }); onIdentity(result.identity); toast.success("Organization profile saved."); }
           catch (reason) { setError(reason instanceof Error ? reason.message : "Could not save profile."); }
-        }}><Form.Item label="Organization name" name="name" rules={[{ required: true, min: 2 }]}><Input maxLength={200} /></Form.Item><Form.Item label="Organization type" name="organization_type" rules={[{ required: true }]}><Select options={organizationTypes} /></Form.Item><Form.Item label="Business activities" name="activities"><Select mode="tags" tokenSeparators={[","]} placeholder="Payments, retail banking, digital onboarding…" /></Form.Item><Button type="primary" htmlType="submit">Save profile</Button></Form><div className="settings-identity"><strong>Signed in as {identity.email}</strong><small>Organization ID: {identity.organization_id}</small><small>Owner account · Sessions expire after 24 hours</small></div></Card>} />
+         }}><Form.Item label="Organization name" name="name" rules={[{ required: true, min: 2 }]}><Input maxLength={200} /></Form.Item><Form.Item label="Organization type" name="organization_type" rules={[{ required: true }]}><Select options={organizationTypes} /></Form.Item><Form.Item label="Business activities" name="activities"><Select mode="tags" tokenSeparators={[","]} placeholder="Payments, retail banking, digital onboarding…" /></Form.Item><Button type="primary" htmlType="submit">Save profile</Button></Form><div className="settings-identity"><strong>Signed in as {identity.email}</strong><small>Organization ID: {identity.organization_id}</small><small>Owner account · Sessions expire after 24 hours</small></div></Card><NotificationSettings/></>} />
         <Route path="*" element={<Card><Empty description="This page does not exist" /><Button onClick={() => navigateTo("dashboard")}>Go to overview</Button></Card>} />
         </Routes>
       </main>

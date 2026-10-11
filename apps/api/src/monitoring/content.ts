@@ -10,7 +10,7 @@ export function monitoringUrl(value: string): string | null {
     const hosts = (process.env.REMOTE_DOCUMENT_HOSTS ?? "lex.uz,www.lex.uz,cbu.uz,www.cbu.uz").split(",").map((host) => host.trim().toLowerCase());
     if (!hosts.includes(url.hostname.toLowerCase())) return null;
     if (["lex.uz", "www.lex.uz"].includes(url.hostname.toLowerCase())) {
-      const id = url.pathname.match(/^\/(?:docs|pdffile)\/(\d+)\/?$/)?.[1];
+      const id = url.pathname.match(/^\/(?:docs|pdffile)\/(-?\d+)\/?$/)?.[1];
       if (!id) return null;
       url.hostname = "lex.uz";
       url.pathname = `/docs/${id}`;

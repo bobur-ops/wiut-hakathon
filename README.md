@@ -36,24 +36,52 @@ PostgreSQL. The API enqueues extraction; a separate worker processes the job.
 Open the web app and choose **Create a workspace**. Use a fictional organization,
 an email identifier, and a unique demo password (at least 6 characters). Each
 registration creates one organization and its owner account; there is no email
-verification, account recovery, or team invitations yet.
+verification, account recovery, or team invitations yet. Notification recipients
+are separate configured email addresses and do not gain workspace access.
+
+### Email notifications
+
+Set `RESEND_API_KEY`, `RESEND_FROM_EMAIL` (a sender/domain verified with Resend),
+`RESEND_ALLOWED_RECIPIENTS` (optional comma-separated address allowlist), and
+`WEB_APP_URL` in the API/worker environment. In **Organization settings**, add
+team email addresses and activate each address immediately in demo mode. Assessment results and
+failures, detected regulation changes, and likely-relevant legislation can be
+sent as summaries with authenticated workspace links; policy text and evidence
+are not included. Recipients can separately opt into assessment emails and
+system alerts, review delivery history, and resend failed or sent notifications.
+Delivery uses the existing PostgreSQL-backed worker queue. Recipients can be
+configured without Resend, though delivery requires valid Resend settings.
 
 The full-width application has an overview, policy management, regulatory library,
 assessment history, review history, and organization settings. The regulatory
 updates screen displays monitored sources, successful/failed check times, candidate
 updates, old/new legal excerpts, and human source-review controls.
+When scheduled monitoring is enabled, it also checks Lex.uz's `Новое в законодательстве` listing every five minutes
+(bounded to the latest 50 rows per scan), stores organization-scoped inbox
+decisions, and uses multilingual fintech-domain keyword matches only as triage
+hints. At most three likely-relevant acts per scan are automatically fetched
+and extracted; after extraction they queue preliminary impact assessments.
+Automatically discovered acts are stored separately from the manually curated
+regulatory library. Confirming relevance authorizes a one-off impact review only;
+it never adds an act to future manual regulatory baselines. Discovery failures are visible. This does not
+search the full Lex archive or verify publication/effective dates; reviewers
+must inspect the source and dates. Scanned or unextractable PDFs may need manual
+handling.
 Navigation uses protected React Router URLs: `/dashboard`, `/policies`,
 `/regulations`, `/assessments`, `/assessments/:id`, `/findings/:id`, `/updates`,
 `/reviews`, and `/settings`. Direct links, reloads, and browser history preserve
 the page. Nginx uses an SPA fallback for deployed deep links.
 
-The assessment screen checks selected policy snapshots against the imported
-regulatory corpus, with no manual prompt or requirement form. It shows prominent
+The assessment screen checks selected policy snapshots against selected eligible
+regulation snapshots (all selected by default), with no manual prompt or
+requirement form. Focused scopes are labelled partial coverage. It shows prominent
 conflict/missing-evidence counts, filterable findings, and a dedicated side-by-side
 regulation/policy evidence page with suggested actions and reviewer history.
 
-All workspace API routes now require `Authorization: Bearer <token>`. Obtain a
-token from `POST /api/auth/register` or `POST /api/auth/login`. Registration fields
+All workspace API routes require a valid session. Browser sign-in sets a shared,
+HttpOnly session cookie; API clients may use `Authorization: Bearer <token>`.
+Obtain a session from `POST /api/auth/register` or `POST /api/auth/login`.
+Registration fields
 are `email`, `password`, `name`, and `organization_type` (`commercial_bank`,
 `payment_organization`, `electronic_money_provider`, or `other_fintech`). Login
 requires `email` and `password`. `GET /api/auth/me` verifies identity;
@@ -61,8 +89,9 @@ requires `email` and `password`. `GET /api/auth/me` verifies identity;
 entry routes remain public; Swagger describes the API without exposing data.
 
 Passwords use salted scrypt hashes; session tokens are random, stored hashed on
-the server, expire after 24 hours, and are held in browser sessionStorage. HTTPS
-is required outside localhost. API rate limiting is disabled by default for development.
+the server, and expire after 24 hours. Browser sessions use an `HttpOnly`,
+`SameSite=Lax` cookie so authorized links work in other tabs without exposing
+the token to JavaScript. HTTPS is required outside localhost. API rate limiting is disabled by default for development.
 Set `RATE_LIMIT_ENABLED=true` before exposing the API publicly to enable global,
 login/register, and monitoring route limits; limits are process-local, not distributed.
 This does not disable external provider quota/rate limits. Configure browser origins with

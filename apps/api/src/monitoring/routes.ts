@@ -2,8 +2,9 @@ import type { FastifyInstance } from "fastify";
 import type { PgBoss } from "pg-boss";
 import { pool } from "../db.js";
 import { queueDocumentImpact } from "../assessments/impact.js";
-import { MONITOR_CHECK_QUEUE } from "../documents/queue.js";
+import { DOCUMENT_QUEUE, MONITOR_CHECK_QUEUE } from "../documents/queue.js";
 import { discoverMonitoringSources } from "./service.js";
+import { discoverNewLegislation, queueLikelyActImport } from "./legislation-discovery.js";
 
 export function canReviewSharedSource(email: string) {
   return (process.env.REGULATORY_REVIEWER_EMAILS ?? "").split(",").map((value) => value.trim().toLowerCase()).filter(Boolean).includes(email.toLowerCase());
@@ -17,6 +18,69 @@ export function registerMonitoringRoutes(app: FastifyInstance, boss: PgBoss) {
       last_document_id, accepted_document_id, organization_id
       FROM regulatory_sources WHERE organization_id = $1 OR organization_id IS NULL ORDER BY name`, [request.identity!.organization_id]);
     return { monitor_enabled: process.env.REGULATORY_MONITOR_ENABLED !== "false", shared_review_allowed: canReviewSharedSource(request.identity!.email), sources: sources.rows };
+  });
+  app.get("/api/new-legislation", { schema: { tags: ["Monitoring"], summary: "List recent Lex.uz legislation screened for this organization" } }, async (request) => {
+    const items = await pool.query(`SELECT item.id,item.lex_document_id,item.title,item.issuer_text,item.published_at::text AS published_at,
+      item.official_url,item.pdf_url,item.discovered_at,inbox.status,inbox.relevance_reasons,
+      inbox.reviewer_identifier,inbox.review_note,inbox.review_decision,inbox.reviewed_at,inbox.imported_document_id,inbox.status_note,
+      impact.id AS impact_assessment_id,impact.status AS impact_assessment_status,
+      impact.processing_stage AS impact_assessment_stage,impact.completed_at AS impact_assessment_completed_at
+      FROM legislation_inbox inbox JOIN legislation_discovery_items item ON item.id=inbox.item_id
+      LEFT JOIN LATERAL (SELECT id,status,processing_stage,completed_at FROM assessments
+        WHERE organization_id=inbox.organization_id AND impact_document_id=inbox.imported_document_id
+        ORDER BY created_at DESC LIMIT 1) impact ON TRUE
+      WHERE inbox.organization_id=$1 ORDER BY item.published_at DESC NULLS LAST,item.discovered_at DESC LIMIT 100`, [request.identity!.organization_id]);
+    const latestRun = await pool.query("SELECT started_at,completed_at,status,scanned_count,inserted_count,error_message FROM legislation_discovery_runs ORDER BY id DESC LIMIT 1");
+    return { items: items.rows, latest_run: latestRun.rows[0] ?? null, discovery_url: "https://lex.uz/ru/search/unique" };
+  });
+  app.post("/api/new-legislation/scan", { config: { rateLimit: { max: 2, timeWindow: "1 minute" } },
+    schema: { tags: ["Monitoring"], summary: "Check Lex.uz for the latest published acts" } }, async (_request, reply) => {
+    try { return await discoverNewLegislation(boss); }
+    catch (error) { return reply.code(502).send({ error: error instanceof Error ? error.message : "Lex.uz discovery failed." }); }
+  });
+  app.post<{ Params: { id: string }; Body: { decision: "RELEVANT" | "NOT_RELEVANT"; note: string } }>("/api/new-legislation/:id/review", {
+    schema: { tags: ["Monitoring"], summary: "Record a human relevance decision for a new act", params,
+      body: { type: "object", additionalProperties: false, required: ["decision","note"], properties: {
+        decision: { type: "string", enum: ["RELEVANT","NOT_RELEVANT"] }, note: { type: "string", minLength: 5, maxLength: 4000 },
+      } } },
+  }, async (request, reply) => {
+    const result = await pool.query(`UPDATE legislation_inbox SET
+      status=CASE WHEN $3='NOT_RELEVANT' AND status IN ('NEW','LIKELY_RELEVANT','RELEVANT','NOT_RELEVANT','QUEUED') THEN 'NOT_RELEVANT'
+                  WHEN $3='RELEVANT' AND status IN ('NEW','NOT_RELEVANT','RELEVANT') AND review_decision IS NULL THEN 'LIKELY_RELEVANT' ELSE status END,
+      review_decision=$3,reviewer_identifier=$4,review_note=$5,reviewed_at=NOW()
+      WHERE organization_id=$1 AND item_id=$2 RETURNING item_id,status`,
+    [request.identity!.organization_id,request.params.id,request.body.decision,request.identity!.email,request.body.note]);
+    if (!result.rowCount) return reply.code(404).send({ error: "Legislation inbox item not found." });
+    if (request.body.decision === "RELEVANT" && result.rows[0].status === "LIKELY_RELEVANT") {
+      const queued = await queueLikelyActImport(request.identity!.organization_id,request.params.id,boss);
+      if (!queued) request.log.info({itemId:request.params.id},"Likely-relevant legislation import is already queued or will be retried by discovery");
+    }
+    return { item_id: request.params.id, status: result.rows[0].status, review_decision: request.body.decision, reviewed: true };
+  });
+  app.post<{ Params: { id: string }; Body: { document_id: string } }>("/api/new-legislation/:id/imported", {
+    schema: { tags: ["Monitoring"], summary: "Link an imported official act to its reviewed inbox item", params,
+      body: { type: "object", additionalProperties: false, required: ["document_id"], properties: { document_id: { type: "string", format: "uuid" } } } },
+  }, async (request, reply) => {
+    const result = await pool.query(`UPDATE legislation_inbox inbox SET status='IMPORTED', imported_document_id=$3
+      FROM legislation_discovery_items item,documents document
+      WHERE inbox.organization_id=$1 AND inbox.item_id=$2 AND inbox.item_id=item.id
+        AND inbox.status='RELEVANT' AND document.id=$3 AND document.organization_id=$1 AND document.document_type='legislation'
+        AND (document.source_url=item.official_url OR document.source_url=item.pdf_url)
+      RETURNING inbox.item_id`,[request.identity!.organization_id,request.params.id,request.body.document_id]);
+    if (!result.rowCount) return reply.code(409).send({ error: "Mark the act relevant first and import its official Lex.uz URL into this organization." });
+    return { item_id: request.params.id, document_id: request.body.document_id, status: "IMPORTED" };
+  });
+  app.post<{ Params: { id: string } }>("/api/new-legislation/:id/retry", { schema: { tags: ["Monitoring"], summary: "Retry automatic retrieval of a likely-relevant act", params } }, async (request,reply) => {
+    const result = await pool.query(`UPDATE legislation_inbox SET status='LIKELY_RELEVANT',status_note=NULL
+      WHERE organization_id=$1 AND item_id=$2 AND status='IMPORT_FAILED' RETURNING item_id,imported_document_id`,[request.identity!.organization_id,request.params.id]);
+    if (!result.rowCount) return reply.code(409).send({error:"This item is not in a retryable failed state."});
+    const importedDocumentId = result.rows[0].imported_document_id as string | null;
+    if (importedDocumentId) await pool.query("UPDATE legislation_inbox SET status='IMPORTED' WHERE organization_id=$1 AND item_id=$2",[request.identity!.organization_id,request.params.id]);
+    const job = importedDocumentId
+      ? await boss.send(DOCUMENT_QUEUE,{documentId:importedDocumentId},{singletonKey:importedDocumentId,singletonSeconds:300,retryLimit:2,retryDelay:30})
+      : await queueLikelyActImport(request.identity!.organization_id,request.params.id,boss);
+    if (!job) return reply.code(503).send({error:"Could not queue the act retrieval retry."});
+    return {item_id:request.params.id,status:"LIKELY_RELEVANT"};
   });
   app.post("/api/regulatory-sources/discover", {
     config: { rateLimit: { max: 2, timeWindow: "1 minute" } },

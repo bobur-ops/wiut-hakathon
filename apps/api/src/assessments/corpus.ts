@@ -17,6 +17,7 @@ export async function selectAssessmentCorpus(organizationId: string): Promise<Co
       FROM documents JOIN document_groups AS groups ON groups.id = documents.document_group_id
       LEFT JOIN accepted ON accepted.id = documents.id
       WHERE documents.document_type = 'regulation'
+        AND COALESCE(documents.extraction_metadata->>'discoveryItemId','') = ''
         AND documents.processing_status = 'COMPLETED'
         AND (documents.organization_id = $1 OR documents.organization_id IS NULL)
         AND (accepted.id IS NOT NULL OR (documents.revision_date IS NULL
@@ -28,6 +29,23 @@ export async function selectAssessmentCorpus(organizationId: string): Promise<Co
         AND length(btrim(content)) > 0
     ) ORDER BY title, id`, [organizationId]);
   return result.rows;
+}
+
+export function scopeAssessmentCorpus(documents: CorpusDocument[], requestedIds?: string[]) {
+  if (requestedIds === undefined) return { documents, omitted: 0 };
+  if (!requestedIds.length || requestedIds.some(id => !documents.some(document => document.id === id))) {
+    throw new Error("Select one or more eligible regulation snapshots from this workspace.");
+  }
+  const selected = new Set(requestedIds);
+  const scoped = documents.filter(document => selected.has(document.id));
+  return { documents: scoped, omitted: documents.length - scoped.length };
+}
+
+export function selectIncrementalCorpus(documents: CorpusDocument[], baselineSnapshots: Array<{kind?:string;document_group_id?:string}>, affectedDocumentId: string, addNewAct: boolean) {
+  const baselineGroups = new Set(baselineSnapshots.filter(snapshot => snapshot.kind === "regulation")
+    .map(snapshot => snapshot.document_group_id).filter((id): id is string => Boolean(id)));
+  return documents.filter(document => baselineGroups.has(document.document_group_id ?? "")
+    || (addNewAct && document.id === affectedDocumentId));
 }
 
 export async function excludedCorpusSources(organizationId: string, documents: CorpusDocument[]) {

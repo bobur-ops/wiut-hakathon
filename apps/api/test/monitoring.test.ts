@@ -14,6 +14,7 @@ import { canReviewSharedSource } from "../src/monitoring/routes.js";
 test("monitoring deduplicates historical Lex URLs into the current official page", () => {
   assert.equal(monitoringUrl("https://www.lex.uz/docs/4575788?ONDATE=22.12.2024&ONDATE2=01.01.2025#old"), "https://lex.uz/docs/4575788");
   assert.equal(monitoringUrl("https://lex.uz/pdffile/4575788"), "https://lex.uz/docs/4575788");
+  assert.equal(monitoringUrl("https://lex.uz/docs/-8529453"), "https://lex.uz/docs/-8529453");
   assert.equal(monitoringUrl("https://lex.uz/docs/123?lang=ru&ONDATE=01.01.2020"), "https://lex.uz/docs/123?lang=ru");
   assert.equal(monitoringUrl("http://lex.uz/docs/123"), null);
   assert.equal(monitoringUrl("https://attacker.example/docs/123"), null);

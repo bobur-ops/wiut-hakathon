@@ -7,7 +7,7 @@ This file tracks completed work, current scope, decisions, and the next planned 
 - AI-assisted regulatory compliance platform for regulated financial institutions and fintech businesses in Uzbekistan.
 - Cover multiple fintech and financial-services domains, including payments, banking, e-money, licensing, consumer protection, security, and AML/KYC. Keep the MVP corpus curated and disclose coverage rather than claiming completeness.
 - Findings must be evidence-backed and reviewed by a human; the product must not claim to certify legal compliance.
-- Regulatory monitoring now checks supported official URLs from the imported corpus on a schedule, preserves changed snapshots, and requires source review. It does not certify legal currency or yet trigger policy-impact assessments.
+- Regulatory monitoring checks supported imported official URLs and Lex.uz's bounded new-legislation listing on a schedule, preserves immutable snapshots, and requires human review. Approved changes/new acts can queue policy impact assessments. It does not certify legal currency.
 
 ## Technology decisions
 
@@ -110,9 +110,50 @@ This file tracks completed work, current scope, decisions, and the next planned 
 
 ## Validation completed
 
+### Lex.uz new-legislation discovery and impact inbox
+
+- Added scheduled (via existing five-minute monitor dispatcher) and manual checks of `https://lex.uz/ru/search/unique`, parsing up to the latest 50 `.dd-table__main-item` act rows per scan, including negative document IDs, issuer/date badge, official page, and PDF link.
+- Added persistent shared publication metadata, organization-scoped relevance inbox/reviewer decisions, and discovery-run status/error tracking. Multilingual banking/payments/customer protection/privacy/AML/cyber/lending keyword matches are explicitly triage hints, not applicability conclusions.
+- Added UI section with manual Check now, official source link, keyword reasons, relevance/not-relevant reviewer actions, and an Import & assess impact flow. Import preserves the act in the organization's regulation library; successful extraction queues an impact run against the latest completed baseline, including for a newly discovered regulation group. Existing comparison caches reduce repeated model calls.
+- For metadata-only HTML or scanned/unextractable documents, extraction/assessment may remain incomplete; legal effective dates and obligation interpretation remain human-reviewed. Discovery is bounded to the current listing's top 50 items, not archive-wide search.
+- The Lex listing's language-specific `/pdfs/{id}` URL is an HTML viewer, so discovery now resolves to its embedded `/pdffile/{id}` endpoint; verified the example negative-ID act downloads as a 775 KB PDF and extracts to Uzbek text without warnings. Negative Lex document IDs are accepted throughout the remote import path.
+- Validation: live Lex listing parsed 20 current rows and correctly surfaced `-8529453`; all 51 API tests run serially (47 pass, four PostgreSQL integration tests skipped without test DB configuration), typecheck, production build, and `git diff --check` passed. Full PostgreSQL migration/API integration and live worker-driven impact assessment remain to run.
+
+### Focused regulation scope and automatic likely-relevant impact checks
+
+- Manual assessment creation accepts an optional eligible regulation snapshot subset; omitted scope means all. The UI defaults to all, provides per-source checkboxes, and clearly marks focused runs as partial coverage. Saved snapshot IDs preserve exactly what was assessed.
+- Policy/regulation update impact runs now retain the baseline assessment's selected regulation groups. A newly discovered act is the only added group for its preliminary impact run; it does not silently expand the rest of the corpus.
+- New-legislation discovery marks keyword/profile matches as likely relevant and automatically queues up to three imports per scan. The worker fetches the official PDF/page, stores an immutable organization-scoped regulation snapshot, extracts it, and queues preliminary impact analysis when a completed baseline exists. Import/extraction failures are visible and retryable. If no baseline exists, users still need an initial manual assessment.
+- Auto-imported acts remain excluded from future manual corpus selection until a reviewer confirms relevance; the impact run can include the act without approving it as baseline law. A not-relevant decision before extraction completion suppresses the impact queue; a later decision does not rewrite an already-created assessment.
+- Validation: pure scope and incremental-scope tests plus legislation/monitoring/optimization tests, typecheck, build, and diff checks pass. Full PostgreSQL migration and end-to-end background assessment remain unverified in this environment.
+
+### Organization email notifications
+
+- Added organization-scoped notification recipients with hashed one-time verification tokens, separate opt-ins for assessment results and system alerts, and deletion/settings APIs. Verified notification addresses do not receive workspace access.
+- Added Resend delivery through a PostgreSQL-backed pg-boss queue, idempotent event/recipient delivery records, retryable delivery status, recent delivery history, and a resend action.
+- Assessment completion/failure messages contain summary counts and authenticated result links only. Monitored regulation changes and likely-relevant new legislation send cautious alert summaries; policy contents and evidence are not emailed. Email queuing failures do not fail assessments or monitoring.
+- Added settings UI for recipients, verification status, categories, delivery history, and resend. Added `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, and `WEB_APP_URL` environment configuration, including Docker Compose wiring.
+- Validation: typecheck and production build pass; 53 API tests pass (49 passed, 4 PostgreSQL-dependent tests skipped); `git diff --check` passes. Live Resend verification/delivery and PostgreSQL migration remain untested until provider credentials and a test database are configured.
+- Follow-up polish: added responsive branded HTML layouts with event-specific labels, headings, clear CTAs, an accessible text fallback, and explicit human-review/legal-certification disclaimers. Dynamic content is escaped before rendering. Dedicated template safety/content tests pass.
+- Demo-mode adjustment: removed in-app recipient verification; recipients activate immediately and existing pending addresses are activated by migration. Expanded CORS preflight methods to include PATCH and DELETE for notification preference/removal controls.
+- Demo recipient restriction: `.env` allowlists only `boburkomilovv@gmail.com`; recipient management, notification queueing, and final worker delivery all enforce the configured allowlist. Other organizations/legacy recipients cannot bypass the delivery guard.
+
+### Legislation inbox triage and review UX fixes
+
+- Listing dates are returned as ISO date-only strings and rendered without timezone/invalid-date conversion; registration dates are labelled as such.
+- Replaced browser `prompt()` with an Ant Design review modal showing the act/source, decision context, reviewer note, and explicit confirm-and-analyze action.
+- Expanded and normalized triage terms for Russian, Uzbek Cyrillic, Uzbek Latin apostrophe variants, and English; language-prefixed Lex document links are recognized and duplicate language rows collapse to the same Lex ID. Added multilingual and exact `-8529453` regression tests.
+- Migration promotes legacy heuristic `RELEVANT` items lacking a recorded reviewer decision back to `LIKELY_RELEVANT`; discovery rescans unreviewed existing records and queues pending candidates. Fixed legacy `/ru/pdfs/{id}` viewer URLs by fetching the canonical `/pdffile/{id}` endpoint and falling back to the canonical `/docs/{id}` page.
+- Live local verification: act `-8529453` is now imported and its preliminary impact assessment completed. Validation: full API test suite (55 passed, 4 PostgreSQL-dependent tests skipped), typecheck, production build, and diff checks pass.
+- Workflow boundary correction: discovered acts now use a distinct `legislation` document/group type and `legislation` assessment-manifest kind. They are supported by the one-off impact extractor but excluded from regulation corpus selection even after relevance confirmation. Migration reclassifies prior inbox-linked act snapshots without changing their content, IDs, or review history; the local `-8529453` snapshot/group now verifies as `legislation`.
+
 ### Routing and corpus-driven assessment — current checkpoint
 
 #### Cancellation, Luna, and incremental-cost checkpoint
+
+- Hackathon prompt tuning: comparisons now determine responsible actor and duty versus regulatory power before evaluating policy coverage; distinguish exclusive Central Bank functions from explicit bank-facing duties in mixed clauses; identify exact missing elements; and require applicability/classification/explanation consistency. Both single and batch adapters share these instructions. Comparison fingerprint advanced to `comparison-v3-actor-first`; existing findings remain unchanged, and extraction caches are preserved.
+- Populated previously empty Demo Bank UZ activities from the synthetic v2 policy: accounts, payer/beneficiary payment services, card services, and personal-data processing. Unestablished issuer/operator/agent/e-money roles remain explicit questions, not asserted exclusions or invented authorizations.
+- Added opt-in six-case live check at `apps/api/scripts/check-comparison-prompt.ts --live`, using corpus-backed duties with controlled synthetic policy evidence. Corrected a test-fixture collision (two different passages initially shared the same section ID). Final live Luna run passed all six cases in 8.9 seconds, estimated $0.0006945; no assessment/findings were inserted. Typecheck and 23 targeted regression tests passed. This small demonstration is not a full-corpus accuracy benchmark. No normalization changes or full reassessment were performed.
 
 - Demo corpus cleanup (user-approved): retained only one current snapshot each for Lex.uz IDs 4575788, 284542, 4396428, and 4590456. Deleted 69 other regulatory/historical snapshots, removed other monitoring sources, and cleared import/check/candidate/extraction-attempt history and assessment/finding/review history. Preserved both internal policy documents, the organization/account, and the four retained extraction caches.
 - Verified the assessment selector returns exactly the four requested URLs with no excluded sources. Cached duties reduced from 835 to 279 (~67% fewer). No AI extraction was needed for cleanup. Added `apps/api/scripts/prune-demo-corpus.ts` with default dry-run, explicit `--apply`, transactional cleanup, and preservation checks. Storage files were not deleted; this cleanup targeted database data. Development services were already stopped and were not restarted.
@@ -156,7 +197,7 @@ This file tracks completed work, current scope, decisions, and the next planned 
 - Added source/check/candidate APIs and the Regulatory Updates UI with source status, check history, on-demand checks, source enable/disable, side-by-side differences, and reviewer controls. Shared configuration/review is limited to `REGULATORY_REVIEWER_EMAILS`; private organization sources remain isolated.
 - Verified the running local database has 13 monitored official sources, each successfully reporting `UNCHANGED`, and the durable dispatcher schedule exists. Real laws were not modified; the changed-source workflow is tested with synthetic responses.
 - Configuration is documented in `.env.example` and passed through Docker Compose. The worker must remain running; monitoring is limited to the imported allowlisted corpus, not discovery of all newly issued laws.
-- Policy impact assessment after updates is still pending. The UI explicitly discloses this instead of claiming internal policies were automatically assessed or changed.
+- For already imported regulation snapshots, approval can queue incremental policy impact assessments; newly discovered acts are handled through the new legislation inbox and require a human relevance decision and import first.
 - Final checks pass: all 26 API tests with PostgreSQL integration enabled, frontend session regression, typecheck, production build, and Docker Compose configuration validation.
 
 - Fixed reload-time session restoration: temporary connection/server failures no longer delete the saved token. The UI shows a retry action; only an actual rejected session (`401`) clears authentication. Cancelled React lifecycle requests cannot erase a newer session.

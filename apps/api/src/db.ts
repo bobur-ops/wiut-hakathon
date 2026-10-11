@@ -171,6 +171,36 @@ export async function migrate() {
       activities JSONB NOT NULL DEFAULT '[]'::jsonb,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS notification_recipients (
+      id UUID PRIMARY KEY,
+      organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      verification_token TEXT NOT NULL,
+      verified_at TIMESTAMPTZ,
+      notify_assessments BOOLEAN NOT NULL DEFAULT TRUE,
+      notify_alerts BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (organization_id,email)
+    );
+    ALTER TABLE notification_recipients ADD COLUMN IF NOT EXISTS notify_assessments BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE notification_recipients ADD COLUMN IF NOT EXISTS notify_alerts BOOLEAN NOT NULL DEFAULT TRUE;
+    UPDATE notification_recipients SET verified_at=NOW(),verification_token='' WHERE verified_at IS NULL;
+    CREATE TABLE IF NOT EXISTS notification_deliveries (
+      id UUID PRIMARY KEY,
+      organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      recipient_id UUID NOT NULL REFERENCES notification_recipients(id) ON DELETE CASCADE,
+      event_key TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      body_text TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'QUEUED' CHECK(status IN ('QUEUED','SENT','FAILED')),
+      attempts INTEGER NOT NULL DEFAULT 0,
+      provider_id TEXT,
+      last_error TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      sent_at TIMESTAMPTZ,
+      UNIQUE (recipient_id,event_key)
+    );
     CREATE TABLE IF NOT EXISTS users (
       id UUID PRIMARY KEY,
       organization_id UUID NOT NULL REFERENCES organizations(id),
@@ -234,6 +264,60 @@ export async function migrate() {
     );
     CREATE INDEX IF NOT EXISTS regulatory_checks_source_idx ON regulatory_source_checks(source_id, started_at DESC);
     CREATE INDEX IF NOT EXISTS regulatory_updates_source_idx ON regulatory_update_candidates(source_id, detected_at DESC);
+    CREATE TABLE IF NOT EXISTS legislation_discovery_items (
+      id UUID PRIMARY KEY,
+      lex_document_id TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL,
+      issuer_text TEXT,
+      published_at DATE,
+      official_url TEXT NOT NULL,
+      pdf_url TEXT,
+      discovered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      metadata JSONB NOT NULL DEFAULT '{}'::jsonb
+    );
+    CREATE TABLE IF NOT EXISTS legislation_inbox (
+      organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      item_id UUID NOT NULL REFERENCES legislation_discovery_items(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'NEW',
+      relevance_reasons JSONB NOT NULL DEFAULT '[]'::jsonb,
+      reviewer_identifier TEXT,
+      review_note TEXT,
+      review_decision TEXT CHECK (review_decision IN ('RELEVANT','NOT_RELEVANT')),
+      reviewed_at TIMESTAMPTZ,
+      status_note TEXT,
+      imported_document_id UUID REFERENCES documents(id),
+      PRIMARY KEY (organization_id,item_id)
+    );
+    ALTER TABLE legislation_inbox DROP CONSTRAINT IF EXISTS legislation_inbox_status_check;
+    ALTER TABLE legislation_inbox ADD CONSTRAINT legislation_inbox_status_check
+      CHECK (status IN ('NEW','LIKELY_RELEVANT','RELEVANT','NOT_RELEVANT','QUEUED','IMPORTING','IMPORTED','IMPORT_FAILED'));
+    ALTER TABLE legislation_inbox ADD COLUMN IF NOT EXISTS review_decision TEXT;
+    ALTER TABLE legislation_inbox ADD COLUMN IF NOT EXISTS status_note TEXT;
+    UPDATE legislation_inbox SET status='LIKELY_RELEVANT'
+      WHERE status='RELEVANT' AND review_decision IS NULL AND reviewer_identifier IS NULL AND reviewed_at IS NULL;
+    UPDATE legislation_inbox SET status='LIKELY_RELEVANT',status_note=NULL
+      WHERE status='IMPORT_FAILED' AND imported_document_id IS NULL
+        AND review_decision IS DISTINCT FROM 'NOT_RELEVANT'
+        AND status_note='The source must return a PDF or an allowlisted Lex.uz /docs/{id} page.';
+    -- Previously discovered acts were stored as regulations. Reclassify only
+    -- inbox-linked snapshots; preserve their IDs, content, sections, and review history.
+    UPDATE documents d SET document_type='legislation',
+      extraction_metadata=jsonb_set(COALESCE(d.extraction_metadata,'{}'::jsonb),'{monitoringSnapshot}','true'::jsonb,true)
+      WHERE d.document_type='regulation' AND EXISTS (
+        SELECT 1 FROM legislation_inbox inbox WHERE inbox.imported_document_id=d.id);
+    UPDATE document_groups g SET document_type='legislation'
+      WHERE EXISTS (SELECT 1 FROM documents d JOIN legislation_inbox inbox ON inbox.imported_document_id=d.id
+        WHERE d.document_group_id=g.id AND d.document_type='legislation');
+    CREATE INDEX IF NOT EXISTS legislation_inbox_org_idx ON legislation_inbox(organization_id,status,item_id);
+    CREATE TABLE IF NOT EXISTS legislation_discovery_runs (
+      id BIGSERIAL PRIMARY KEY,
+      started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMPTZ,
+      status TEXT NOT NULL,
+      scanned_count INTEGER NOT NULL DEFAULT 0,
+      inserted_count INTEGER NOT NULL DEFAULT 0,
+      error_message TEXT
+    );
     ALTER TABLE assessments ADD COLUMN IF NOT EXISTS corpus_document_ids UUID[] NOT NULL DEFAULT '{}';
     ALTER TABLE assessments ADD COLUMN IF NOT EXISTS organization_profile JSONB NOT NULL DEFAULT '{}'::jsonb;
     ALTER TABLE assessments ADD COLUMN IF NOT EXISTS input_snapshots JSONB NOT NULL DEFAULT '[]'::jsonb;

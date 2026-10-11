@@ -4,12 +4,29 @@ import type { Pool } from "pg";
 import { extractionBatches, extractBatchWithRetries, outputSchema, validateExtractedObligations } from "../src/assessments/extraction.js";
 import { createAssessmentProcessor, processConcurrently } from "../src/assessments/service.js";
 import type { CorpusDocument } from "../src/assessments/corpus.js";
+import { scopeAssessmentCorpus, selectIncrementalCorpus } from "../src/assessments/corpus.js";
 import { validateAnalysis } from "../src/assessments/analysis.js";
 import type { EvidencePassage } from "../src/retrieval/search.js";
 
 const document: CorpusDocument = { id: "regulation-1", title: "Synthetic regulation", filename: "synthetic.txt", content_hash: "hash", source_url: null, version_label: "v1", revision_date: null, source_reviewed: false };
 const legalText = "Banks must retain customer records for five years, unless another provision applies.";
 const section = { id: "section-1", content: legalText, heading: null, source_reference: "article:1" };
+
+test("manual assessment regulation scope defaults to all and validates focused eligible subsets", () => {
+  const all = [document,{...document,id:"regulation-2",document_group_id:"group-2"}];
+  assert.deepEqual(scopeAssessmentCorpus(all).documents,all);
+  assert.equal(scopeAssessmentCorpus(all,["regulation-2"]).omitted,1);
+  assert.deepEqual(scopeAssessmentCorpus(all,["regulation-2"]).documents.map(item=>item.id),["regulation-2"]);
+  assert.throws(()=>scopeAssessmentCorpus(all,[]),/one or more/);
+  assert.throws(()=>scopeAssessmentCorpus(all,["foreign"]),/eligible/);
+});
+
+test("incremental impact preserves the baseline regulation scope and appends only a newly discovered act", () => {
+  const docs=[{...document,document_group_id:"group-1"},{...document,id:"group-2-doc",document_group_id:"group-2"},{...document,id:"new-act",document_group_id:"new-group"}];
+  const baseline=[{kind:"regulation",document_group_id:"group-1"},{kind:"legislation",document_group_id:"old-act-group"}];
+  assert.deepEqual(selectIncrementalCorpus(docs,baseline,"group-2-doc",false).map(item=>item.id),["regulation-1"]);
+  assert.deepEqual(selectIncrementalCorpus(docs,baseline,"new-act",true).map(item=>item.id),["regulation-1","new-act"]);
+});
 
 test("extraction batches cover every source section and long clauses without truncating the corpus", () => {
   const sections = [section, { ...section, id: "long", content: "x".repeat(18000) }, { ...section, id: "last", content: "Last legal provision" }];
