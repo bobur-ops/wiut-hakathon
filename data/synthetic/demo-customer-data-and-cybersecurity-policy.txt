@@ -1,0 +1,55 @@
+DEMO DOCUMENT — FICTIONAL COMPANY — NOT AN APPROVED OR LEGAL POLICY
+
+DEMO BANK UZ
+CUSTOMER DATA AND CYBERSECURITY POLICY
+
+Document ID: DEMO-SEC-001
+Version: 2.0 — demonstration revision
+Effective date: 11 October 2026 (fictional)
+Owner: Security Officer and Data Protection Officer
+Approval: Demonstration Board
+Review cycle: Annual and after a material security incident, processing change, or source update
+
+1. Purpose, roles, and scope
+
+This policy governs personal information and information systems used by fictional Demo Bank UZ (the “Bank”). The demo profile treats the Bank as the owner/operator of customer personal-data databases and a provider of digital banking and payment services. It applies to employees, contractors, systems, and third parties processing Bank or customer information.
+
+This is synthetic demonstration material, not a legal policy. It does not establish any real license, registration, legal basis, or compliance status. The Data Protection Officer (DPO) and Security Officer must confirm the Bank’s actual role, data categories, applicable legal grounds, and current source requirements before production use.
+
+2. Data inventory, purpose, and lawful processing
+
+Before a product collects or uses personal data, its owner records the task, purpose, data fields necessary and sufficient for that task, source, recipients, system, retention trigger, and applicable legal basis. The DPO approves the field set and reviews it at least annually. A new or changed purpose requires a documented legal-basis review and, where consent is the required basis, new confirmable consent before the changed processing begins.
+
+Consent evidence records the subject, purpose, data categories, date, channel, notice version, and affirmative action. Where the law requires written consent, including electronic-document form, the consent record must preserve that form. The process records withdrawal in the same form as consent or in writing, including electronically, and routes it for cessation of consent-based processing unless another lawful basis applies. Special, biometric, and genetic data require DPO approval and the specific consent or other exception required by law before processing.
+
+For minors, legally incapable or limited-capacity subjects, and deceased or court-declared missing subjects, the DPO routes the case for the required representative or heirs’ written consent and records the determination before processing. Employees and third parties must keep entrusted personal data confidential and may access it only for assigned duties. Vendor access requires a documented purpose, approved safeguards, contractual confidentiality, and least-privilege access.
+
+3. Subject requests, accuracy, and retention
+
+Customer Support logs and routes requests to access, obtain processing information, correct, supplement, block, or delete personal data. The DPO verifies the requester, records the legal deadline, assigns an owner, tracks the response, and retains the response evidence. Responses cover the information the law requires, including processing purposes, methods, relevant recipients, data sources where disclosable, processing/storage periods, and how the subject may exercise applicable rights. The DPO ensures corrections are propagated to relevant records and recipients where required.
+
+Where the Bank has placed personal data in a publicly accessible source, the DPO handles a valid subject request in the form required by law and decisions of an authorized body or court. Requests relating to deceased or missing persons are reviewed under the applicable heirs-consent rules.
+
+Each data category has an approved retention period or event-based trigger tied to achievement of its collection and processing purpose. At the trigger, the system owner deletes or irreversibly de-identifies the data unless a documented, applicable legal hold or mandatory retention duty requires continued storage. Any exception states its legal basis, data categories, owner, review date, and expiry. Indefinite retention for convenience or storage availability is not permitted.
+
+The DPO maintains an inventory of personal-data databases and determines which require registration. Registration evidence, changes, and renewal actions are recorded in the compliance register. The Bank does not treat an internal system inventory as proof of statutory registration.
+
+4. Storage, transfer, and security controls
+
+The system owner records each production data store, hosting country, processor, access group, encryption status, and backup arrangement. Transfers or storage outside Uzbekistan require prior DPO and Security approval. The DPO checks the applicable localization requirements and any allowed cross-border condition, including recognized adequate protection, compliant contractual safeguards, or approved standards. Data in categories subject to a distinct localization rule must remain in the required location. No employee may approve their own transfer exception.
+
+Access uses named accounts, least privilege, multifactor authentication for privileged access, logging, quarterly review, prompt removal after role change or departure, and approved secure channels. Engineering applies security updates under change control and monitors security alerts. Controls must prevent unlawful dissemination, theft, loss, alteration of integrity, blocking, falsification, and other unauthorized access; detected cases receive prompt containment and remediation.
+
+Production data is backed up at least daily where technically supported, encrypted, and access-restricted. The system owner tests restoration at least quarterly and after a material platform change. Each test records scope, outcome, recovery issues, remediation owner, and closure. A failed restore test is escalated to the Security Officer and tracked until a successful retest.
+
+5. Cybersecurity incidents and resilience
+
+Employees and service providers report suspected or confirmed account compromise, unauthorized access, malware, data exposure, data integrity issue, or service disruption immediately to the Security Officer through the incident channel. Escalation does not wait for confirmed financial loss. Security triages, preserves evidence, contains the threat, assesses affected systems and people, and records times, decisions, owners, and corrective actions.
+
+The incident lead promptly convenes the response group for material or potentially reportable events. Legal/Compliance determines applicable regulator, subject, and partner notification requirements and deadlines; the decision and rationale are recorded. Customer notices are not deferred merely because investigation is ongoing when a legal deadline applies. The Bank conducts a post-incident review and tracks remediation.
+
+6. Training, exceptions, and review
+
+Staff and relevant contractors receive role-based privacy and security training at onboarding and annually. Exceptions require written approval, a risk assessment, compensating safeguards, owner, and expiry date. The DPO and Security Officer review this policy at least annually and after material changes. Automated findings are drafts for human verification, not a legal conclusion.
+
+END OF FICTIONAL DEMO POLICY

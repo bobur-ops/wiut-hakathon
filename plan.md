@@ -2037,51 +2037,51 @@ Submission-ready prototype, deck, and repository.
 
 ---
 
-# 20. Live Demo Plan
+# 20. Demo Data and Presentation Plan
 
-Target demo duration: two minutes.
+Use a screenshot-first presentation, with a short, rehearsed live walkthrough only if time permits. Target 5–7 minutes for the product story; do not wait for imports or assessments to finish during the presentation. Keep the prepared app open as a backup, and capture readable, cropped screenshots from the actual product.
 
-## Part 1: Initial Assessment
+## 20.1 Regulatory Sources and Version Setup
 
-Open the fictional fintech organization workspace.
+The candidate Lex.uz documents are:
 
-Upload an internal customer-identification or AML policy.
+- Payments and Payment Systems: https://lex.uz/docs/4575788
+- https://lex.uz/docs/4396428
+- https://lex.uz/docs/5960609
+- https://lex.uz/docs/6213428
+- https://lex.uz/docs/5972413
 
-Run an assessment.
+Before importing, inspect each source's available versions, revision dates, and relevant changes. Select a clear, policy-related update for one or two documents. For most sources, use the latest version. For selected source(s), import a suitable historical version as the organization's initial demo baseline, then import the latest version into the same regulation's version group.
 
-Open a generated finding that includes:
+Label the older snapshot accurately as the organization's **demo baseline before the update**, not as current law. Verify dates and legal applicability from the official source. Do not claim that monitoring automatically detected an update if it was manually imported for the demonstration.
 
-- A genuine regulatory obligation.
-- A relevant policy passage.
-- An identified discrepancy.
-- A source-backed explanation.
-- A proposed corrective action.
+## 20.2 Fictional Company Policy Pack
 
-Confirm the finding as a compliance officer.
+Create a fictional fintech/bank profile whose activities fit the applicable requirements in the five selected sources. Draft a small, coherent set of clearly labelled fictional internal policies (for example, customer identification, payments, and complaints/customer treatment), rather than one artificial policy per regulation.
 
-Show the audit entry.
+Only after reviewing the actual source clauses, introduce a few controlled, realistic gaps: approximately 2–3 explicit conflicts against the initial baseline, 1–2 missing procedures/evidence gaps, several compliant provisions, and—if the chosen revision supports it—one provision compliant with the old baseline but inconsistent with the newer text. Never invent a legal obligation to manufacture a finding.
 
-## Part 2: Regulatory Change
+Maintain a private expected-results checklist mapping each intended issue to the official clause, exact policy passage, and expected classification. Run the assessment before the demo and verify the evidence and classifications. Fix or remove planted issues that produce unsupported or confusing findings. Clearly mark all policy files as fictional demonstration material.
 
-Import a new regulatory text or amendment.
+## 20.3 Presentation Story
 
-Run impact analysis.
+1. **Baseline:** show the manually curated regulations and their selected snapshot/revision dates; explain that the organization controls its assessment corpus.
+2. **Initial policy check:** show the fictional internal policy and a completed assessment. Open one strong evidence-backed finding with the regulatory clause and policy passage side by side.
+3. **Regulatory update:** show the before/after source text and reviewed new version, then the incremental assessment with new, changed, and unchanged findings. Explain that internal policies are not automatically rewritten.
+4. **Notification:** show the actual delivered email and how it takes the reviewer to the relevant assessment.
+5. **Separate new-act triage:** show a short amending act in the legislation inbox, human relevance review, and its separate preliminary impact assessment. Emphasize that discovery/relevance does not silently add the act to the regulatory baseline.
 
-Demonstrate that the platform identifies an affected internal policy and explains the potential impact.
+## 20.4 Screenshot Checklist
 
-## Part 3: Technical Evidence
+- Regulatory library with source names and meaningful version/revision labels.
+- Initial completed assessment with clear finding counts/classifications.
+- One finding detail with source-backed regulatory and policy passages.
+- Official before/after amendment comparison and reviewed version.
+- Updated impact assessment showing changed findings.
+- Delivered notification email.
+- Separate legislation inbox row, human review decision, and direct assessment link.
 
-Show:
-
-- Real API activity.
-- Structured findings.
-- Source references.
-- Evaluation metrics.
-- Recorded execution cost.
-
-The demo must also support an unfamiliar input supplied by the jury.
-
-The platform must not depend on a prepared document name, fixed text, or hardcoded response.
+Use large, legible screenshots; avoid showing AI usage statistics or cost figures. If anything is staged, say so. Close by stating that RegCheck supports human compliance decisions and does not certify legal compliance.
 
 ---
 

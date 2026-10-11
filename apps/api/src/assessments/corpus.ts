@@ -4,6 +4,7 @@ export interface CorpusDocument {
   id: string; title: string; filename: string; content_hash: string;
   source_url: string | null; version_label: string | null; revision_date: string | null;
   source_reviewed: boolean;
+  assessment_baseline: boolean;
   document_group_id?: string;
 }
 
@@ -13,15 +14,17 @@ export async function selectAssessmentCorpus(organizationId: string): Promise<Co
     selected AS (
       SELECT DISTINCT ON (documents.document_group_id) documents.id, documents.document_group_id, groups.title,
         documents.filename, documents.content_hash, documents.source_url, documents.version_label,
-        documents.revision_date::text, (accepted.id IS NOT NULL) AS source_reviewed
+        documents.revision_date::text, (accepted.id IS NOT NULL) AS source_reviewed,
+        (COALESCE(documents.extraction_metadata->>'assessmentBaseline','false') = 'true') AS assessment_baseline
       FROM documents JOIN document_groups AS groups ON groups.id = documents.document_group_id
       LEFT JOIN accepted ON accepted.id = documents.id
       WHERE documents.document_type = 'regulation'
         AND COALESCE(documents.extraction_metadata->>'discoveryItemId','') = ''
         AND documents.processing_status = 'COMPLETED'
         AND (documents.organization_id = $1 OR documents.organization_id IS NULL)
-        AND (accepted.id IS NOT NULL OR (documents.revision_date IS NULL
-          AND COALESCE(documents.extraction_metadata->>'monitoringSnapshot', 'false') <> 'true'))
+        AND (accepted.id IS NOT NULL OR COALESCE(documents.extraction_metadata->>'assessmentBaseline','false') = 'true'
+          OR (documents.revision_date IS NULL
+            AND COALESCE(documents.extraction_metadata->>'monitoringSnapshot', 'false') <> 'true'))
       ORDER BY documents.document_group_id, (accepted.id IS NOT NULL) DESC, documents.uploaded_at DESC, documents.id
     ) SELECT * FROM selected WHERE EXISTS (
       SELECT 1 FROM document_sections WHERE document_id = selected.id

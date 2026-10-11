@@ -1,0 +1,51 @@
+DEMO DOCUMENT — FICTIONAL COMPANY — NOT AN APPROVED OR LEGAL POLICY
+
+DEMO BANK UZ
+DIGITAL CUSTOMER TERMS, CREDIT INFORMATION, AND COMPLAINTS POLICY
+
+Document ID: DEMO-CX-001
+Version: 2.0 — demonstration revision
+Effective date: 11 October 2026 (fictional)
+Owner: Head of Digital Products and Head of Credit Operations
+Approval: Demonstration Board
+Review cycle: Annual and before material changes to a digital service
+
+1. Purpose and scope
+
+This policy governs customer-facing agreements and notices accepted through fictional Demo Bank UZ’s digital channels, customer questions and complaints, and credit-information reporting. It applies to Product, Credit Operations, Payment Operations, Customer Support, Legal/Compliance, and Engineering.
+
+The demo profile establishes a commercial bank and payment-service roles. The policy does not claim that the Bank is a non-bank credit organization, a separately licensed payment organization, or an e-commerce marketplace operator. Where the Bank sells or provides a service through an electronic channel, Product and Compliance determine which electronic-commerce requirements apply to that transaction. Additional duties that depend on an unconfirmed role are reviewed before launch.
+
+2. Electronic offers, terms, and customer acceptance
+
+Before a customer submits an application, instruction, or electronic agreement, the channel displays the service provider, service description, price and charges, material conditions, applicable cancellation/refund route, and any other terms required for that product. For a credit product, the customer sees the principal, all applicable charges, total amount payable, repayment amounts and dates, and consequences stated in the product terms before accepting.
+
+The complete terms are available to view and download before the customer accepts. Acceptance requires an affirmative action and creates a durable record of the exact terms version, displayed offer, customer account, date/time, channel, and consent event. The customer receives an electronic confirmation and a copy of the accepted terms in a form that can later be retrieved. The Bank preserves the offer and transaction records for the approved retention period.
+
+Any material change is reviewed by Product and Compliance before publication. The Bank does not apply a changed price or term retroactively to a completed agreement. Where customer agreement or notice is required, the channel records delivery and acceptance before the changed term takes effect.
+
+3. Credit decisions and credit-information reporting
+
+Where the Bank offers credit, Credit Operations records the application, decision, principal, charges, repayment schedule, customer notice, and any manual override. A second reviewer approves a manual override. Customers can retrieve the current schedule and accepted agreement. Changes are explained, recorded, and communicated within any applicable notice period.
+
+The Credit Information Officer maintains a process for providing credit information held by the Bank to both the State Register of Credit Information and credit bureaus where required. Submissions are reconciled to source records, exceptions are assigned and corrected, and evidence of transmission and correction is retained. Legal/Compliance confirms any additional duty before the Bank undertakes a separate non-bank-credit or microfinance activity; this policy does not claim that such a role exists.
+
+4. Payment, cancellation, and refund requests
+
+The digital channel shows whether a payment is pending, completed, rejected, or returned and provides a transaction reference. A pending payment is not represented as settled. Customer Support logs cancellation, repayment-allocation correction, duplicate-payment, and refund requests on receipt, assigns a responsible team and due date, and gives the customer a reference and status update.
+
+The assigned team resolves each request within the applicable legal or contractual deadline. If a deadline is at risk, the team escalates to its manager and Compliance before it expires. Payment errors caused by the Bank follow the correction and remedy process in the Payment Services Operations Policy; customer communications do not suspend a required correction or refund.
+
+5. Customer information and complaints
+
+Customer Support logs questions and complaints with received date, channel, product, issue, customer reference, assigned owner, status updates, decision, and response. It acknowledges and resolves complaints within applicable legal time limits. An internal target may be shorter, but never extends a statutory deadline. Complaints alleging unauthorized transactions, privacy or security incidents, unfair charges, or a missed deadline are immediately routed to the relevant control owner. Cases unresolved at first review escalate to the Support Manager and Compliance, with a written decision and reasons sent to the customer.
+
+Staff use the terms version accepted by that customer when explaining a transaction. Where the Bank conducts e-commerce sales to business entities, Product verifies applicable fiscal-receipt and settlement-reporting requirements before the service is launched; no employee may assume that a bank transfer receipt satisfies a separate requirement.
+
+6. Records, oversight, and review
+
+Product retains the exact offer and terms version, display/acceptance evidence, customer confirmation, service status, and required transaction documents. Credit Operations retains decision and repayment evidence. Customer Support retains complaint and resolution records. Access is restricted and retention follows approved schedules tied to processing purpose and mandatory legal holds.
+
+Compliance reviews the actual transaction, organizational role, applicable source version, and effective date before assigning legal duties. Findings from automated assessment are draft prompts requiring human verification, not proof of a violation or certification of compliance.
+
+END OF FICTIONAL DEMO POLICY

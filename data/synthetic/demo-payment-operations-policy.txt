@@ -1,0 +1,57 @@
+DEMO DOCUMENT — FICTIONAL COMPANY — NOT AN APPROVED OR LEGAL POLICY
+
+DEMO BANK UZ
+PAYMENT SERVICES OPERATIONS POLICY
+
+Document ID: DEMO-OPS-001
+Version: 2.0 — demonstration revision
+Effective date: 11 October 2026 (fictional)
+Owner: Head of Payment Operations
+Approval: Demonstration Board
+Review cycle: Annual and after a material service or regulatory change
+
+1. Purpose, entity, and scope
+
+This policy describes how fictional Demo Bank UZ (the “Bank”) receives, validates, executes, records, and investigates payment instructions. It applies to Payment Operations, Customer Support, Product, Engineering, and employees with access to payment records or controls. The demo organization profile identifies the Bank as a commercial bank providing payment services in payer-bank and beneficiary-bank roles.
+
+This is synthetic demonstration material, not a legal policy. It does not establish that any real organization has an authorization. Duties for a role the demo profile has not established—such as payment-system operator, electronic-money issuer, or payment agent—are conditional and must be confirmed before application.
+
+2. Accountability and access
+
+The Head of Payment Operations owns processing, settlement, reconciliation, and exception handling. Engineering maintains system controls and audit logs. Customer Support handles user notices and complaints. Compliance maintains the applicable source register and reviews changes. Security coordinates cyber incidents.
+
+Production payment access is role-based, individually assigned, approved by a manager, logged, and reviewed quarterly. The person who prepares a manual payment adjustment may not approve it. Reversals, balance corrections, and manual releases require an independent authorized reviewer and a recorded reason, supporting evidence, preparer, reviewer, and timestamp.
+
+3. Receipt, validation, and execution of instructions
+
+The Bank must not initiate a payment without an instruction from the payment-service user. Before execution, the responsible system or employee checks the instruction against applicable requirements, the user’s authorization, and the relevant agreement. A payment service is provided only on the conditions stated in the user’s instruction. If an instruction fails a required check, the Bank refuses execution, records the reason, and gives the user any notice required by the applicable process.
+
+The transaction record includes the instruction identifier, amount, currency, payer and recipient details available to the Bank, receipt time and channel, value date where applicable, authorization evidence, validation outcome, processing status, and any refusal or correction. The user receives a paper or electronic confirmation after the payment service is provided; electronic confirmations are retained and can be retrieved. Content follows applicable Central Bank requirements.
+
+4. Operating times, deadlines, and exceptions
+
+Payment Operations applies role-specific execution deadlines from the applicable payment rules and agreement. For ordinary instructions, the Bank processes payer-bank instructions on the operating day they are presented, subject to applicable stated exceptions. Instructions received after the operating day are handled as received at the start of the next operating day. International payments are scheduled within the applicable limit and foreign-exchange requirements. The beneficiary-bank function credits the beneficiary during the operating day on which it receives the instruction, subject to the applicable rule.
+
+Collection orders, payment demands, letters of credit, instructions with an indefinite execution period, future value dates, and qualifying electronic-instrument retail or e-commerce instructions are routed under their own applicable rules; staff do not apply the ordinary deadline mechanically to those categories. Reserved funds and special transit-account funds are transferred by the value date stated in the payment document with sufficient time for beneficiary credit.
+
+The Bank refuses an instruction where a required legal or contractual ground applies, including insufficient funds unless the agreement provides for payment-service credit; suspected forgery or alteration; failure to meet contractual submission requirements; applicable anti-money-laundering or treaty restrictions; legally protected accounts; unauthorized instructions or confirmed improper receipt; and account claims or state-body restrictions. Compliance or Legal resolves unclear grounds before staff take action. These examples are operational prompts, not a complete legal interpretation.
+
+5. Error correction, reconciliation, and customer notices
+
+Operations monitors accepted, rejected, pending, returned, and reversed transactions throughout each operating day. An uncertain or duplicate outcome is assigned an owner immediately and investigated against processor and settlement records; it is not left unresolved solely for the next daily report. Customer Support provides a timely status notice where appropriate and logs the notice.
+
+If the Bank, acting as a payment-service provider, identifies an erroneous payment caused by its fault, the responsible team transfers the funds to the recipient’s account no later than the working day following detection. The team records detection and correction times. If a statutory payment deadline is missed, Finance and Compliance calculate and arrange any applicable return, penalty, or other remedy under the verified rule. No policy may delay a required remedy while an internal investigation continues.
+
+The Bank reconciles its transaction ledger with processor and settlement records each business day. Unmatched items receive an owner, priority, target date, and escalation route. The Head of Payment Operations reviews aged items daily and trends monthly. Records are retained under an approved schedule that accounts for processing purpose and any separately applicable mandatory retention duty.
+
+6. Complaints, incidents, and conditional roles
+
+Customer Support logs the received date, user and transaction reference, issue, assigned owner, status updates, resolution, and supporting evidence. Complaints are acknowledged and resolved within applicable legal time limits; an internal service target may be shorter but never replaces a statutory deadline. Unresolved or overdue cases escalate to the Support Manager and Compliance.
+
+Suspected unauthorized use, data exposure, or a material processing interruption is referred promptly to Security and Payment Operations. If the Bank confirms it is acting as a card issuer, it must maintain a 24-hour loss/unauthorized-use reporting channel, block a card immediately after notice, and process reimbursement claims and decisions within the applicable legal timelines. If the Bank engages payment agents or subagents, Compliance confirms the role and maintains applicable registers, monitoring, reporting, and contract controls before the arrangement begins.
+
+7. Review
+
+Compliance verifies the exact source text, effective date, and Bank role before converting a regulatory finding into a control obligation. Owners track approved remediation to closure. These fictional procedures and any automated assessment are not legal advice or certification of compliance.
+
+END OF FICTIONAL DEMO POLICY
